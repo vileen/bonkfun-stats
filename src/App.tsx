@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
-import { Trophy, DollarSign, Clock, TrendingUp, Wallet, Flame } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
+import { Trophy, DollarSign, Clock, TrendingUp, Wallet, Flame, ExternalLink } from 'lucide-react';
 import './App.css';
 
 // Types
@@ -12,17 +12,13 @@ interface GraduatedToken {
   volume24h: number;
   priceChange24h: number;
   timestamp: number;
+  imageUrl?: string;
 }
 
-interface RevenueData {
-  totalRevenue: number;
-  fees24h: number;
-  volume24h: number;
-  distribution: {
-    name: string;
-    value: number;
-    color: string;
-  }[];
+interface HistoricalRevenue {
+  date: string;
+  fees: number;
+  volume: number;
 }
 
 interface RewardsData {
@@ -33,34 +29,65 @@ interface RewardsData {
   nextDistribution: number;
 }
 
-// Mock data generators (replace with actual API calls)
-const generateMockGraduated = (timeRange: '100' | '24h'): GraduatedToken[] => {
-  const count = timeRange === '24h' ? 15 : 100;
-  return Array.from({ length: count }, (_, i) => ({
-    id: `token-${i}`,
-    name: `Token ${i + 1}`,
-    symbol: `TKN${i + 1}`,
-    marketCap: Math.random() * 1000000 + 50000,
-    volume24h: Math.random() * 500000 + 10000,
-    priceChange24h: (Math.random() - 0.5) * 100,
-    timestamp: Date.now() - Math.random() * (timeRange === '24h' ? 86400000 : 604800000),
-  }));
+// Fetch graduated tokens from bonk.fun API
+const fetchGraduatedTokens = async (timeRange: '100' | '24h'): Promise<GraduatedToken[]> => {
+  try {
+    // Note: This is a mock implementation. 
+    // Real implementation would need CORS proxy or backend endpoint
+    // const response = await fetch('https://api.bonk.fun/graduated?limit=' + (timeRange === '24h' ? '50' : '100'));
+    // const data = await response.json();
+    
+    // Mock data with realistic token names
+    const mockTokens: GraduatedToken[] = [
+      { id: '1', name: 'BonkMoon', symbol: 'BMOON', marketCap: 2500000, volume24h: 450000, priceChange24h: 45.2, timestamp: Date.now() - 3600000, imageUrl: '' },
+      { id: '2', name: 'SolanaDoge', symbol: 'SDOGE', marketCap: 1800000, volume24h: 320000, priceChange24h: -12.5, timestamp: Date.now() - 7200000, imageUrl: '' },
+      { id: '3', name: 'MemeCoinMax', symbol: 'MAX', marketCap: 950000, volume24h: 280000, priceChange24h: 89.3, timestamp: Date.now() - 10800000, imageUrl: '' },
+      { id: '4', name: 'RocketBONK', symbol: 'RBONK', marketCap: 750000, volume24h: 150000, priceChange24h: 23.7, timestamp: Date.now() - 14400000, imageUrl: '' },
+      { id: '5', name: 'DegenLife', symbol: 'DEGEN', marketCap: 620000, volume24h: 120000, priceChange24h: -5.4, timestamp: Date.now() - 18000000, imageUrl: '' },
+      { id: '6', name: 'MoonShot', symbol: 'MOON', marketCap: 580000, volume24h: 98000, priceChange24h: 156.2, timestamp: Date.now() - 21600000, imageUrl: '' },
+      { id: '7', name: 'BONKArmy', symbol: 'ARMY', marketCap: 450000, volume24h: 87000, priceChange24h: 34.8, timestamp: Date.now() - 25200000, imageUrl: '' },
+      { id: '8', name: 'SolSurfer', symbol: 'SURF', marketCap: 380000, volume24h: 65000, priceChange24h: -18.9, timestamp: Date.now() - 28800000, imageUrl: '' },
+    ];
+    
+    return timeRange === '24h' ? mockTokens.slice(0, 8) : [...mockTokens, ...mockTokens.map((t, i) => ({...t, id: t.id + '-' + i, name: t.name + ' V' + (i+2)}))];
+  } catch (error) {
+    console.error('Error fetching graduated tokens:', error);
+    return [];
+  }
 };
 
-const REVENUE_DISTRIBUTION = [
-  { name: 'Buy for BNKK', value: 51, color: '#f97316' },
-  { name: 'Community Marketing', value: 10, color: '#3b82f6' },
-  { name: 'BONKsol Staking', value: 10, color: '#22c55e' },
-  { name: '$GP Reserve', value: 7.67, color: '#a855f7' },
-  { name: 'Hiring/Growth', value: 7.67, color: '#ec4899' },
-  { name: 'Development', value: 7.67, color: '#06b6d4' },
-  { name: 'Marketing', value: 4, color: '#eab308' },
-  { name: 'BonkRewards', value: 2, color: '#6366f1' },
-];
+// Fetch historical revenue data
+const fetchHistoricalRevenue = async (): Promise<HistoricalRevenue[]> => {
+  // Mock historical data - last 30 days
+  const data: HistoricalRevenue[] = [];
+  for (let i = 29; i >= 0; i--) {
+    const date = new Date();
+    date.setDate(date.getDate() - i);
+    data.push({
+      date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      fees: Math.floor(Math.random() * 30000) + 20000,
+      volume: Math.floor(Math.random() * 2000000) + 1000000,
+    });
+  }
+  return data;
+};
+
+// Fetch rewards data
+const fetchRewardsData = async (): Promise<RewardsData> => {
+  // Mock data - replace with actual API call
+  return {
+    solPool: 12.5,
+    usd1Pool: 1250,
+    graduatedToday: 8,
+    perBond: 0.15,
+    nextDistribution: Date.now() + 3600000,
+  };
+};
 
 function App() {
   const [graduatedView, setGraduatedView] = useState<'100' | '24h'>('24h');
   const [graduatedTokens, setGraduatedTokens] = useState<GraduatedToken[]>([]);
+  const [historicalRevenue, setHistoricalRevenue] = useState<HistoricalRevenue[]>([]);
   const [rewards, setRewards] = useState<RewardsData>({
     solPool: 0,
     usd1Pool: 0,
@@ -68,31 +95,36 @@ function App() {
     perBond: 0,
     nextDistribution: 0,
   });
-  const [revenue] = useState<RevenueData>({
-    totalRevenue: 1250000,
-    fees24h: 45000,
-    volume24h: 2500000,
-    distribution: REVENUE_DISTRIBUTION,
-  });
+  const [revenue24h, setRevenue24h] = useState({ fees: 45000, volume: 2500000 });
   const [countdown, setCountdown] = useState({ h: 0, m: 0, s: 0 });
+  const [loading, setLoading] = useState(true);
 
-  // Fetch graduated tokens
+  // Fetch all data
   useEffect(() => {
-    // TODO: Replace with actual API call to bonk.fun
-    setGraduatedTokens(generateMockGraduated(graduatedView));
+    const loadData = async () => {
+      setLoading(true);
+      const [tokens, revenue, rewardsData] = await Promise.all([
+        fetchGraduatedTokens(graduatedView),
+        fetchHistoricalRevenue(),
+        fetchRewardsData(),
+      ]);
+      setGraduatedTokens(tokens);
+      setHistoricalRevenue(revenue);
+      setRewards(rewardsData);
+      
+      // Calculate 24h totals from historical data
+      const last24h = revenue.slice(-1)[0];
+      if (last24h) {
+        setRevenue24h({ fees: last24h.fees, volume: last24h.volume });
+      }
+      
+      setLoading(false);
+    };
+    
+    loadData();
+    const interval = setInterval(loadData, 60000); // Refresh every minute
+    return () => clearInterval(interval);
   }, [graduatedView]);
-
-  // Fetch rewards data
-  useEffect(() => {
-    // TODO: Replace with actual API call to rewards.bonk.fun
-    setRewards({
-      solPool: 12.5,
-      usd1Pool: 1250,
-      graduatedToday: 8,
-      perBond: 0.15,
-      nextDistribution: Date.now() + 3600000, // 1 hour from now
-    });
-  }, []);
 
   // Countdown timer
   useEffect(() => {
@@ -111,11 +143,28 @@ function App() {
     return () => clearInterval(interval);
   }, []);
 
+  if (loading) {
+    return (
+      <div className="dashboard loading">
+        <div className="spinner"></div>
+        <p>Loading BONKfun Stats...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="dashboard">
       <header className="dashboard-header">
         <h1><Flame className="icon-orange" /> BONKfun Stats</h1>
         <p>Combined dashboard for BONK.fun ecosystem metrics</p>
+        <div className="header-links">
+          <a href="https://bonk.fun" target="_blank" rel="noopener noreferrer">
+            bonk.fun <ExternalLink size={14} />
+          </a>
+          <a href="https://rewards.bonk.fun" target="_blank" rel="noopener noreferrer">
+            rewards <ExternalLink size={14} />
+          </a>
+        </div>
       </header>
 
       {/* Top Stats Row */}
@@ -150,11 +199,11 @@ function App() {
           </div>
           <div className="revenue-stats">
             <div className="revenue-item">
-              <span className="amount">${revenue.fees24h.toLocaleString()}</span>
+              <span className="amount">${revenue24h.fees.toLocaleString()}</span>
               <span className="label">Fees</span>
             </div>
             <div className="revenue-item">
-              <span className="amount">${revenue.volume24h.toLocaleString()}</span>
+              <span className="amount">${(revenue24h.volume / 1000000).toFixed(2)}M</span>
               <span className="label">Volume</span>
             </div>
           </div>
@@ -202,60 +251,88 @@ function App() {
             {graduatedTokens.map((token) => (
               <div key={token.id} className="token-row">
                 <div className="token-info">
-                  <span className="token-name">{token.name}</span>
-                  <span className="token-symbol">{token.symbol}</span>
+                  {token.imageUrl && <img src={token.imageUrl} alt="" className="token-image" />}
+                  <div className="token-details">
+                    <span className="token-name">{token.name}</span>
+                    <span className="token-symbol">${token.symbol}</span>
+                  </div>
                 </div>
-                <span className="market-cap">${token.marketCap.toLocaleString()}</span>
-                <span className="volume">${token.volume24h.toLocaleString()}</span>
+                <span className="market-cap">${(token.marketCap / 1000).toFixed(1)}k</span>
+                <span className="volume">${(token.volume24h / 1000).toFixed(1)}k</span>
                 <span className={`change ${token.priceChange24h >= 0 ? 'positive' : 'negative'}`}>
-                  {token.priceChange24h >= 0 ? '+' : ''}{token.priceChange24h.toFixed(2)}%
+                  {token.priceChange24h >= 0 ? '+' : ''}{token.priceChange24h.toFixed(1)}%
                 </span>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Revenue Distribution */}
+        {/* Historical Revenue */}
         <div className="section chart-section">
           <div className="section-header">
             <Wallet className="icon-purple" />
-            <h2>Revenue Distribution</h2>
+            <h2>Revenue History (30d)</h2>
           </div>
           <div className="chart-container">
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={revenue.distribution}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={100}
-                  paddingAngle={2}
-                  dataKey="value"
-                >
-                  {revenue.distribution.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip formatter={(value) => `${value}%`} />
-                <Legend />
-              </PieChart>
+            <ResponsiveContainer width="100%" height={250}>
+              <BarChart data={historicalRevenue}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#2a2a3a" />
+                <XAxis 
+                  dataKey="date" 
+                  stroke="#666" 
+                  fontSize={10}
+                  tickLine={false}
+                />
+                <YAxis 
+                  stroke="#666" 
+                  fontSize={10}
+                  tickLine={false}
+                  tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
+                />
+                <RechartsTooltip 
+                  contentStyle={{ backgroundColor: '#1a1a25', border: '1px solid #2a2a3a' }}
+                  formatter={(value: number) => [`$${value.toLocaleString()}`, 'Fees']}
+                />
+                <Bar dataKey="fees" fill="#22c55e" radius={[4, 4, 0, 0]} />
+              </BarChart>
             </ResponsiveContainer>
           </div>
-          <div className="distribution-list">
-            {revenue.distribution.map((item) => (
-              <div key={item.name} className="distribution-item">
-                <span className="dot" style={{ backgroundColor: item.color }}></span>
-                <span className="name">{item.name}</span>
-                <span className="value">{item.value}%</span>
-              </div>
-            ))}
+          
+          <div className="chart-container second-chart">
+            <ResponsiveContainer width="100%" height={200}>
+              <LineChart data={historicalRevenue}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#2a2a3a" />
+                <XAxis 
+                  dataKey="date" 
+                  stroke="#666" 
+                  fontSize={10}
+                  tickLine={false}
+                />
+                <YAxis 
+                  stroke="#666" 
+                  fontSize={10}
+                  tickLine={false}
+                  tickFormatter={(value) => `$${(value / 1000000).toFixed(1)}M`}
+                />
+                <RechartsTooltip 
+                  contentStyle={{ backgroundColor: '#1a1a25', border: '1px solid #2a2a3a' }}
+                  formatter={(value: number) => [`$${value.toLocaleString()}`, 'Volume']}
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="volume" 
+                  stroke="#3b82f6" 
+                  strokeWidth={2}
+                  dot={false}
+                />
+              </LineChart>
+            </ResponsiveContainer>
           </div>
         </div>
       </div>
 
       <footer className="dashboard-footer">
-        <p>Data sources: bonk.fun, revenue.letsbonk.fun, rewards.bonk.fun</p>
+        <p>Data sources: bonk.fun, rewards.bonk.fun</p>
         <p>Updates automatically every 60 seconds</p>
       </footer>
     </div>
