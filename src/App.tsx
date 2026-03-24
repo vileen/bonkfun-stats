@@ -1,3 +1,17 @@
+/**
+ * ⚠️ MOCK DATA WARNING ⚠️
+ * 
+ * This dashboard uses FAKE/MOCK DATA for demonstration purposes.
+ * All token names, prices, and metrics are placeholder examples.
+ * 
+ * TO USE REAL DATA:
+ * 1. Find actual API endpoints using browser DevTools on bonk.fun
+ * 2. Replace mock fetch functions below with real API calls
+ * 3. Handle CORS (use proxy or Netlify Functions)
+ * 
+ * Current implementation returns static mock data only.
+ */
+
 import { useState, useEffect } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { Trophy, DollarSign, Clock, TrendingUp, Wallet, Flame, ExternalLink, Info } from 'lucide-react';

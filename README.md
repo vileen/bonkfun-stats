@@ -7,6 +7,17 @@ Combined dashboard for BONK.fun ecosystem metrics, aggregating data from:
 
 ![Dashboard Preview](./preview.png)
 
+## ⚠️ IMPORTANT: Mock Data Only
+
+**This dashboard currently uses MOCK DATA (fake/example data).**
+
+All numbers, token names, and charts are placeholder examples based on screenshots from the source sites. **No real API calls are being made.**
+
+To use real data, you need to:
+1. Find the actual API endpoints (see "Connecting to Real APIs" below)
+2. Update the fetch functions in `src/App.tsx`
+3. Handle CORS or use a proxy
+
 ## Features
 
 - **Graduated Tokens**: View top 100 or last 24h graduated tokens with market cap, volume, and price change
