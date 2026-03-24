@@ -42,42 +42,6 @@ const fetchGraduatedTokens = async (timeRange: '100' | '24h'): Promise<{ tokens:
   }
 };
 
-// Fetch yesterday's graduated count separately (uses full 100 list)
-const fetchYesterdayStats = async (solPool: number): Promise<{ count: number; perBond: number; hasMore: boolean }> => {
-  try {
-    const response = await fetch('/.netlify/functions/graduated-tokens?range=100');
-    if (!response.ok) throw new Error('Failed to fetch tokens');
-    const data = await response.json();
-    const tokens: GraduatedToken[] = data.tokens || [];
-    const apiHasMore = data.hasMore || false;
-
-    const now = Date.now();
-    const oneDayMs = 24 * 60 * 60 * 1000;
-    const yesterdayStart = now - 2 * oneDayMs;
-    const yesterdayEnd = now - oneDayMs;
-
-    const yesterdayTokens = tokens.filter((t: GraduatedToken) => {
-      const ts = t.timestamp || 0;
-      return ts >= yesterdayStart && ts < yesterdayEnd;
-    });
-
-    const count = yesterdayTokens.length;
-    const perBond = count > 0 ? (solPool / count) : 0;
-
-    // Yesterday has more if:
-    // 1. API returned 100 tokens (apiHasMore = true) AND
-    // 2. The oldest token is from yesterday (meaning we cut off some yesterday tokens)
-    const oldestToken = tokens[tokens.length - 1];
-    const oldestTokenTime = oldestToken?.timestamp || 0;
-    const yesterdayHasMore = apiHasMore && oldestTokenTime >= yesterdayStart;
-
-    return { count, perBond, hasMore: yesterdayHasMore };
-  } catch (error) {
-    console.error('Error fetching yesterday stats:', error);
-    return { count: 0, perBond: 0, hasMore: false };
-  }
-};
-
 // Fetch revenue data via Netlify Function
 const fetchRevenueData = async () => {
   try {
@@ -251,15 +215,34 @@ function App() {
       setRevenueTotal(revenue.total);
       setRewards(rewardsData);
 
-      // Fetch yesterday stats using the SOL pool
-      const yesterday = await fetchYesterdayStats(rewardsData.solPool);
-      setGraduatedYesterday(yesterday);
+      // Note: Yesterday stats are calculated in loadTokens effect
+      // to avoid duplicate API calls. We just need rewards data for per-bond calc.
 
       setInitialLoading(false);
     };
 
     loadInitialData();
   }, []);
+
+  // Recalculate yesterday stats when rewards data is loaded (for per-bond calculation)
+  useEffect(() => {
+    if (rewards.solPool > 0 && allTokens.length > 0) {
+      // Recalculate per-bond with actual SOL pool
+      const now = new Date();
+      const todayMidnight = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+      const yesterdayMidnight = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 1);
+
+      const yesterdayTokens = allTokens.filter(t => {
+        const ts = t.timestamp || 0;
+        return ts >= yesterdayMidnight && ts < todayMidnight;
+      });
+
+      const count = yesterdayTokens.length;
+      const perBond = count > 0 ? (rewards.solPool / count) : 0;
+
+      setGraduatedYesterday(prev => ({ ...prev, perBond }));
+    }
+  }, [rewards.solPool, allTokens]);
 
   // Countdown timer
   useEffect(() => {
