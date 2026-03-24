@@ -39,10 +39,10 @@ const getUniqueMonths = (history: HistoricalRevenue[]): string[] => {
   return Array.from(months).sort();
 };
 
-// Helper to filter history by month
-const filterByMonth = (history: HistoricalRevenue[], month: string): HistoricalRevenue[] => {
-  if (month === 'all') return history;
-  return history.filter(item => item.month === month);
+// Helper to filter history by selected months
+const filterByMonths = (history: HistoricalRevenue[], selectedMonths: string[]): HistoricalRevenue[] => {
+  if (selectedMonths.length === 0) return history;
+  return history.filter(item => selectedMonths.includes(item.month));
 };
 
 // Fetch graduated tokens via Netlify Function (proxies to Raydium API)
@@ -119,8 +119,29 @@ function App() {
     nextDistribution: 0,
   });
   const [revenue24h, setRevenue24h] = useState({ fees: 45000, volume: 2500000 });
-  const [revenueTotal, setRevenueTotal] = useState({ fees: 0, volume: 0 });
-  const [revenueMonth, setRevenueMonth] = useState<string>('all');
+  const [selectedMonths, setSelectedMonths] = useState<string[]>([]);
+
+  // Calculate filtered revenue data and totals based on selected months
+  const filteredRevenue = filterByMonths(historicalRevenue, selectedMonths);
+  const filteredTotal = {
+    fees: filteredRevenue.reduce((sum, item) => sum + item.fees, 0),
+    volume: filteredRevenue.reduce((sum, item) => sum + item.volume, 0),
+  };
+
+  // Handle month toggle (add/remove from selection)
+  const toggleMonth = (month: string) => {
+    setSelectedMonths(prev => {
+      if (prev.includes(month)) {
+        return prev.filter(m => m !== month);
+      }
+      return [...prev, month];
+    });
+  };
+
+  // Clear all selections (show all)
+  const clearMonthSelection = () => {
+    setSelectedMonths([]);
+  };
   const [countdown, setCountdown] = useState({ h: 0, m: 0, s: 0 });
   const [initialLoading, setInitialLoading] = useState(true);
   const [tokensLoading, setTokensLoading] = useState(false);
@@ -229,7 +250,6 @@ function App() {
       ]);
       setHistoricalRevenue(revenue.history);
       setRevenue24h({ fees: revenue.fees24h, volume: revenue.volume24h });
-      setRevenueTotal(revenue.total);
       setRewards(rewardsData);
 
       // Note: Yesterday stats are calculated in loadTokens effect
@@ -523,37 +543,37 @@ function App() {
           </div>
           <div className="revenue-totals">
             <div className="revenue-total-item">
-              <span className="total-label">Total Fees</span>
-              <span className="total-value">${revenueTotal.fees.toLocaleString()}</span>
+              <span className="total-label">Fees</span>
+              <span className="total-value">${filteredTotal.fees.toLocaleString()}</span>
             </div>
             <div className="revenue-total-item">
-              <span className="total-label">Total Volume</span>
-              <span className="total-value">${(revenueTotal.volume / 1000000).toFixed(2)}M</span>
+              <span className="total-label">Volume</span>
+              <span className="total-value">${(filteredTotal.volume / 1000000).toFixed(2)}M</span>
             </div>
           </div>
-          
+
           {/* Month Selector */}
           <div className="month-selector">
             <button
-              className={revenueMonth === 'all' ? 'active' : ''}
-              onClick={() => setRevenueMonth('all')}
+              className={selectedMonths.length === 0 ? 'active' : ''}
+              onClick={clearMonthSelection}
             >
               All
             </button>
             {getUniqueMonths(historicalRevenue).map(month => (
               <button
                 key={month}
-                className={revenueMonth === month ? 'active' : ''}
-                onClick={() => setRevenueMonth(month)}
+                className={selectedMonths.includes(month) ? 'active' : ''}
+                onClick={() => toggleMonth(month)}
               >
                 {month}
               </button>
             ))}
           </div>
-          
+
           <div className="chart-container">
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={filterByMonth(historicalRevenue, revenueMonth)}>
+              <BarChart data={filteredRevenue}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#2a2a3a" />
                 <XAxis 
                   dataKey="date" 
