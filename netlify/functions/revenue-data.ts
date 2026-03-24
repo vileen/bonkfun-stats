@@ -15,81 +15,81 @@ export const handler: Handler = async (event) => {
     const response = await fetch('https://revenue.letsbonk.fun/');
     const html = await response.text();
     
-    // Extract 24h Volume and Fees from the displayed text
-    const volumeMatch = html.match(/24h Volume[\s\S]*?\$([\d.]+)\s*M/i);
-    const feesMatch = html.match(/24h Fees[\s\S]*?\$([\d.]+)\s*K/i);
-    
-    // Also extract from the script tag (c:{totalVolume, totalFees})
-    const scriptMatch = html.match(/c:\\{"totalVolume":([\d.]+),"totalFees":([\d.]+)\\}/);
+    // Extract 24h Volume and Fees from script c:{...}
+    // Format: c:{"totalVolume":15294177.54867579,"totalFees":195237.86}
+    const scriptMatch = html.match(/c:\\?{"totalVolume":([\d.]+),"totalFees":([\d.]+)\\?}/);
     
     let volume24h = 15294178;
     let fees24h = 195238;
     
-    if (volumeMatch) {
-      volume24h = Math.round(parseFloat(volumeMatch[1]) * 1000000);
-    } else if (scriptMatch) {
+    if (scriptMatch) {
       volume24h = Math.round(parseFloat(scriptMatch[1]));
-    }
-    
-    if (feesMatch) {
-      fees24h = Math.round(parseFloat(feesMatch[1]) * 1000);
-    } else if (scriptMatch) {
       fees24h = Math.round(parseFloat(scriptMatch[2]));
     }
     
-    // Extract historical data from the HTML - try multiple patterns
+    // Extract historical data from script 9:{...}
+    // Format: self.__next_f.push([1, "9:{\"data\":[...],\"latestDay\":\"...\",\"stalenessDays\":1,\"error\":null}"])
     let history: any[] = [];
     
-    // Try to find Next.js data script with historical data
-    const nextDataMatch = html.match(/<script id="__NEXT_DATA__"[^>]*>(.+?)<\/script>/s);
-    if (nextDataMatch) {
+    // Try to find the 9: script pattern
+    const historyScriptMatch = html.match(/self\.\_\_next_f\.push\(\[1,\s*"9:([^"]+)"\]\)/);
+    
+    if (historyScriptMatch) {
       try {
-        const nextData = JSON.parse(nextDataMatch[1]);
-        const historical = nextData?.props?.pageProps?.historicalData || nextData?.props?.pageProps?.history || [];
-        if (Array.isArray(historical) && historical.length > 0) {
-          history = historical.map((item: any) => ({
-            date: new Date(item.timestamp || item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-            fees: item.solRevenue || item.fees || item.revenue || 0,
-            volume: item.volume || item.totalVolume || (item.solRevenue ? item.solRevenue * 50 : 0),
-          })).slice(-30); // Last 30 days
+        // Unescape the JSON string
+        const jsonStr = historyScriptMatch[1]
+          .replace(/\\"/g, '"')
+          .replace(/\\n/g, '\n')
+          .replace(/\\\\/g, '\\');
+        
+        const historyData = JSON.parse(jsonStr);
+        
+        if (Array.isArray(historyData.data) && historyData.data.length > 0) {
+          // Sort by day and take last 30 entries
+          const sortedData = historyData.data
+            .map((item: any) => ({
+              date: new Date(item.day).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+              fees: Math.round(item.totalUsd || 0), // Use total USD revenue as fees
+              volume: Math.round((item.totalUsd || 0) * 50), // Approximate volume from fees
+            }))
+            .sort((a: any, b: any) => new Date(a.day).getTime() - new Date(b.day).getTime())
+            .slice(-30);
+          
+          history = sortedData;
         }
       } catch (e) {
-        console.log('Failed to parse __NEXT_DATA__:', e);
+        console.log('Failed to parse history script 9:', e);
       }
     }
     
-    // Fallback: try inline script patterns
+    // Fallback: try alternate pattern if first one failed
     if (history.length === 0) {
-      const historyMatch = html.match(/9:(\{.+?\}]),"error":null/);
-      if (historyMatch) {
+      const altMatch = html.match(/9:\\?({"data":\\?\[.+?\\?],"latestDay":.+?"stalenessDays":[\d.]+,"error":null})/);
+      if (altMatch) {
         try {
-          const historyStr = historyMatch[1].replace(/\\"/g, '"');
-          const historyData = JSON.parse(historyStr);
+          const jsonStr = altMatch[1]
+            .replace(/\\"/g, '"')
+            .replace(/\\n/g, '\n');
+          const historyData = JSON.parse(jsonStr);
+          
           if (Array.isArray(historyData.data)) {
-            history = historyData.data.map((item: any) => ({
-              date: new Date(item.timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-              fees: item.solRevenue || 0,
-              volume: item.solRevenue ? item.solRevenue * 50 : 0,
-            }));
+            history = historyData.data
+              .map((item: any) => ({
+                date: new Date(item.day).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+                fees: Math.round(item.totalUsd || 0),
+                volume: Math.round((item.totalUsd || 0) * 50),
+              }))
+              .slice(-30);
           }
         } catch (e) {
-          console.log('Failed to parse history:', e);
+          console.log('Failed to parse alternate history pattern:', e);
         }
       }
     }
     
-    // If still no history, generate mock 30-day data for display
+    // If still no history, return empty array (frontend will handle empty state)
     if (history.length === 0) {
-      const now = new Date();
-      for (let i = 29; i >= 0; i--) {
-        const date = new Date(now);
-        date.setDate(date.getDate() - i);
-        history.push({
-          date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-          fees: Math.round(fees24h * (0.5 + Math.random())),
-          volume: Math.round(volume24h * (0.5 + Math.random())),
-        });
-      }
+      console.log('No historical data found, returning empty array');
     }
     
     return {
