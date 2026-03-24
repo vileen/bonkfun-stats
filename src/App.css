@@ -530,6 +530,7 @@ body {
   height: 32px;
   border-radius: 50%;
   background: var(--bg-secondary);
+  object-fit: cover;
 }
 
 .token-details {

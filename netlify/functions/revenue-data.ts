@@ -28,18 +28,22 @@ export const handler: Handler = async (event) => {
     }
 
     // Extract historical data from script 9:{...}
-    // Format: self.__next_f.push([1, "9:{\"data\":[...],\"latestDay\":\"...\",\"stalenessDays\":1,\"error\":null}"])
+    // The data is in: self.__next_f.push([1, "9:{\\\"data\\\":[...],...}"])
     let history: any[] = [];
 
-    // Try to find the 9: script pattern - the JSON is stringified inside the push call
-    // Need to extract the content between "9: and the closing "]
-    const historyScriptMatch = html.match(/self\.\_\_next_f\.push\(\[1,\s*"9:({.+?})"\]\)/);
+    // Find the script containing the daily revenue data
+    // Look for the pattern: "9:{\"data\":[...],\"latestDay\":...}
+    const historyMatch = html.match(/"9:({\\"data\\":\[.+?],\\"latestDay\\":\\"[^\\"]+\\",\\"stalenessDays\\":[\d.]+,\\"error\\":null})"/);
 
-    if (historyScriptMatch) {
+    if (historyMatch) {
       try {
-        // The captured group contains escaped JSON
-        // Unescape: \\\" -> \" and then \" -> "
-        const jsonStr = historyScriptMatch[1]
+        // The captured group contains double-escaped JSON
+        // First, extract the raw string and unescape it
+        let jsonStr = historyMatch[1];
+
+        // Unescape: \\\" -> \" -> "
+        // The string is double-escaped because it's inside an HTML script string
+        jsonStr = jsonStr
           .replace(/\\"/g, '"')      // \\\" -> \"
           .replace(/\\n/g, '\n')      // \\n -> newline
           .replace(/\\\\/g, '\\');    // \\\\ -> \
@@ -47,26 +51,51 @@ export const handler: Handler = async (event) => {
         const historyData = JSON.parse(jsonStr);
 
         if (Array.isArray(historyData.data) && historyData.data.length > 0) {
-          // Sort by day and take last 30 entries
-          const sortedData = historyData.data
+          // Map to chart format and take last 30 days
+          history = historyData.data
             .map((item: any) => ({
               date: new Date(item.day).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-              fees: Math.round(item.totalUsd || 0), // Use total USD revenue as fees
-              volume: Math.round((item.totalUsd || 0) * 50), // Approximate volume from fees
+              fees: Math.round(item.totalUsd || 0),
+              volume: Math.round((item.totalUsd || 0) * 50),
             }))
-            .sort((a: any, b: any) => new Date(a.day).getTime() - new Date(b.day).getTime())
             .slice(-30);
-
-          history = sortedData;
         }
       } catch (e) {
-        console.log('Failed to parse history script 9:', e);
+        console.log('Failed to parse history from match:', e);
       }
     }
 
-    // If still no history, return empty array
+    // Fallback: try alternative pattern if first one failed
     if (history.length === 0) {
-      console.log('No historical data found, returning empty array');
+      // Try to find any self.__next_f.push that contains daily data with totalUsd
+      const altMatch = html.match(/self\.\_\_next_f\.push\(\[1,\s*"9:({.+?})"\]\)/s);
+      if (altMatch) {
+        try {
+          let jsonStr = altMatch[1];
+          // Multiple unescape passes needed
+          while (jsonStr.includes('\\"')) {
+            jsonStr = jsonStr.replace(/\\"/g, '"');
+          }
+          jsonStr = jsonStr.replace(/\\n/g, '\n').replace(/\\\\/g, '\\');
+
+          const historyData = JSON.parse(jsonStr);
+          if (Array.isArray(historyData.data)) {
+            history = historyData.data
+              .map((item: any) => ({
+                date: new Date(item.day).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+                fees: Math.round(item.totalUsd || 0),
+                volume: Math.round((item.totalUsd || 0) * 50),
+              }))
+              .slice(-30);
+          }
+        } catch (e) {
+          console.log('Failed to parse alt history:', e);
+        }
+      }
+    }
+
+    if (history.length === 0) {
+      console.log('No historical data found');
     }
 
     return {

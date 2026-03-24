@@ -44,10 +44,10 @@ export const handler: Handler = async (event) => {
       name: token.name || 'Unknown',
       symbol: token.symbol || '$???',
       marketCap: token.marketCap || 0,
-      volume24h: token.volumeU || token.volume24h || token.volume || 0,
-      priceChange24h: token.priceChange24h || token.price_change_24h || token.price_change || token.priceChange || token.change24h || token.change_24h || 0,
-      timestamp: token.createAt || token.created_at || Date.now(),
-      imageUrl: token.imgUrl || token.icon || token.image || '',
+      volume24h: token.volumeU || token.volume24h || token.volume || token.vol || 0,
+      priceChange24h: token.priceChange24h ?? token.price_change_24h ?? token.price_change ?? token.priceChange ?? token.change24h ?? token.change_24h ?? token.percent ?? token.priceChangePercent ?? 0,
+      timestamp: token.createAt || token.created_at || token.createdAt || Date.now(),
+      imageUrl: token.imgUrl || token.icon || token.image || token.logo || token.logoURI || '',
     }));
 
     // Sort by creation time (newest first)

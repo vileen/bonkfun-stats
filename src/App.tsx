@@ -49,22 +49,29 @@ const fetchYesterdayStats = async (solPool: number): Promise<{ count: number; pe
     if (!response.ok) throw new Error('Failed to fetch tokens');
     const data = await response.json();
     const tokens: GraduatedToken[] = data.tokens || [];
-    const hasMore = data.hasMore || false;
-    
+    const apiHasMore = data.hasMore || false;
+
     const now = Date.now();
     const oneDayMs = 24 * 60 * 60 * 1000;
     const yesterdayStart = now - 2 * oneDayMs;
     const yesterdayEnd = now - oneDayMs;
-    
+
     const yesterdayTokens = tokens.filter((t: GraduatedToken) => {
       const ts = t.timestamp || 0;
       return ts >= yesterdayStart && ts < yesterdayEnd;
     });
-    
+
     const count = yesterdayTokens.length;
     const perBond = count > 0 ? (solPool / count) : 0;
-    
-    return { count, perBond, hasMore };
+
+    // Yesterday has more if:
+    // 1. API returned 100 tokens (apiHasMore = true) AND
+    // 2. The oldest token is from yesterday (meaning we cut off some yesterday tokens)
+    const oldestToken = tokens[tokens.length - 1];
+    const oldestTokenTime = oldestToken?.timestamp || 0;
+    const yesterdayHasMore = apiHasMore && oldestTokenTime >= yesterdayStart;
+
+    return { count, perBond, hasMore: yesterdayHasMore };
   } catch (error) {
     console.error('Error fetching yesterday stats:', error);
     return { count: 0, perBond: 0, hasMore: false };
@@ -135,21 +142,26 @@ function App() {
   const [tokensLoading, setTokensLoading] = useState(false);
 
   // Calculate yesterday's graduated count from tokens
-  const calculateYesterdayStats = (tokens: GraduatedToken[], hasMore: boolean) => {
+  const calculateYesterdayStats = (tokens: GraduatedToken[], apiHasMore: boolean) => {
     const now = Date.now();
     const oneDayMs = 24 * 60 * 60 * 1000;
     const yesterdayStart = now - 2 * oneDayMs; // 48h ago
     const yesterdayEnd = now - oneDayMs; // 24h ago
-    
+
     const yesterdayTokens = tokens.filter(t => {
       const ts = t.timestamp || 0;
       return ts >= yesterdayStart && ts < yesterdayEnd;
     });
-    
+
     const count = yesterdayTokens.length;
     const perBond = count > 0 ? (rewards.solPool / count) : 0;
-    
-    setGraduatedYesterday({ count, perBond, hasMore });
+
+    // Yesterday has more if API hit limit and oldest token is from yesterday
+    const oldestToken = tokens[tokens.length - 1];
+    const oldestTokenTime = oldestToken?.timestamp || 0;
+    const yesterdayHasMore = apiHasMore && oldestTokenTime >= yesterdayStart;
+
+    setGraduatedYesterday({ count, perBond, hasMore: yesterdayHasMore });
   };
 
   // Fetch graduated tokens (with separate refresh interval)
@@ -389,7 +401,15 @@ function App() {
               graduatedTokens.map((token) => (
                 <div key={token.id} className="token-row">
                   <div className="token-info">
-                    {token.imageUrl && <img src={token.imageUrl} alt="" className="token-image" />}
+                    {token.imageUrl && (
+                      <img 
+                        src={token.imageUrl} 
+                        alt="" 
+                        className="token-image" 
+                        referrerPolicy="no-referrer"
+                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                      />
+                    )}
                     <div className="token-details">
                       <span className="token-name">{token.name}</span>
                       <span className="token-symbol">${token.symbol}</span>
