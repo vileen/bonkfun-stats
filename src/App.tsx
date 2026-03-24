@@ -329,6 +329,9 @@ function App() {
           <a href="https://rewards.bonk.fun" target="_blank" rel="noopener noreferrer">
             rewards <ExternalLink size={14} />
           </a>
+          <a href="https://revenue.letsbonk.fun" target="_blank" rel="noopener noreferrer">
+            revenue <ExternalLink size={14} />
+          </a>
         </div>
       </header>
 
@@ -609,7 +612,7 @@ function App() {
       </div>
 
       <footer className="dashboard-footer">
-        <p>Data sources: bonk.fun, rewards.bonk.fun</p>
+        <p>Data sources: <a href="https://bonk.fun" target="_blank" rel="noopener noreferrer">bonk.fun</a>, <a href="https://rewards.bonk.fun" target="_blank" rel="noopener noreferrer">rewards.bonk.fun</a>, <a href="https://revenue.letsbonk.fun" target="_blank" rel="noopener noreferrer">revenue.letsbonk.fun</a></p>
         <p>Updates automatically every 60 seconds</p>
         <p className="utc-note"><Info size={12} /> "Today" = since 00:00 UTC | "Yesterday" = 00:00-23:59 UTC previous day</p>
       </footer>
