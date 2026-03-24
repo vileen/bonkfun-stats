@@ -16,9 +16,9 @@ export const handler: Handler = async (event) => {
     const params = event.queryStringParameters || {};
     const timeRange = params.range || '24h';
     
-    // Fetch from Raydium API
+    // Fetch from Raydium API - mintType=graduated returns only graduated tokens
     const response = await fetch(
-      'https://launch-mint-v1.raydium.io/get/list?platformId=FfYek5vEz23cMkWsdJwG2oa6EphsvXSHrGpdALN4g6W1,82NMHVCKwehXgbXMyzL41mvv3sdkypaMCtTxvJ4CtTzm,BuM6KDpWiTcxvrpXywWFiw45R2RNH8WURdvqoTDV1BW4&sort=new&size=100&mintType=default&includeNsfw=true'
+      'https://launch-mint-v1.raydium.io/get/list?platformId=FfYek5vEz23cMkWsdJwG2oa6EphsvXSHrGpdALN4g6W1,82NMHVCKwehXgbXMyzL41mvv3sdkypaMCtTxvJ4CtTzm,BuM6KDpWiTcxvrpXywWFiw45R2RNH8WURdvqoTDV1BW4&sort=new&size=100&mintType=graduated&includeNsfw=true'
     );
     
     const data = await response.json();
@@ -49,14 +49,8 @@ export const handler: Handler = async (event) => {
     }
     
     // Map to our format - handle different field names
-    const graduatedTokens = tokens
-      .filter((token: any) => {
-        // Check if token has graduated (marketCap > 69k or has graduated flag)
-        const marketCap = token.marketCap || token.market_cap || token.mc || 0;
-        const isGraduated = token.isGraduated || token.graduated || token.graduate || marketCap > 69000;
-        return isGraduated || marketCap > 50000;
-      })
-      .map((token: any) => ({
+    // Note: API already returns only graduated tokens (mintType=graduated)
+    const graduatedTokens = tokens.map((token: any) => ({
         id: token.mint || token.id || token.address || String(Math.random()),
         name: token.name || 'Unknown',
         symbol: token.symbol || token.sym || '$???',
