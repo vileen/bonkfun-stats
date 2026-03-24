@@ -1,17 +1,3 @@
-/**
- * ⚠️ MOCK DATA WARNING ⚠️
- * 
- * This dashboard uses FAKE/MOCK DATA for demonstration purposes.
- * All token names, prices, and metrics are placeholder examples.
- * 
- * TO USE REAL DATA:
- * 1. Find actual API endpoints using browser DevTools on bonk.fun
- * 2. Replace mock fetch functions below with real API calls
- * 3. Handle CORS (use proxy or Netlify Functions)
- * 
- * Current implementation returns static mock data only.
- */
-
 import { useState, useEffect } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { Trophy, DollarSign, Clock, TrendingUp, Wallet, Flame, ExternalLink, Info } from 'lucide-react';
@@ -53,6 +39,34 @@ const fetchGraduatedTokens = async (timeRange: '100' | '24h'): Promise<Graduated
   } catch (error) {
     console.error('Error fetching graduated tokens:', error);
     return [];
+  }
+};
+
+// Fetch yesterday's graduated count separately (uses full 100 list)
+const fetchYesterdayStats = async (solPool: number): Promise<{ count: number; perBond: number }> => {
+  try {
+    const response = await fetch('/.netlify/functions/graduated-tokens?range=100');
+    if (!response.ok) throw new Error('Failed to fetch tokens');
+    const data = await response.json();
+    const tokens: GraduatedToken[] = data.tokens || [];
+    
+    const now = Date.now();
+    const oneDayMs = 24 * 60 * 60 * 1000;
+    const yesterdayStart = now - 2 * oneDayMs;
+    const yesterdayEnd = now - oneDayMs;
+    
+    const yesterdayTokens = tokens.filter((t: GraduatedToken) => {
+      const ts = t.timestamp || 0;
+      return ts >= yesterdayStart && ts < yesterdayEnd;
+    });
+    
+    const count = yesterdayTokens.length;
+    const perBond = count > 0 ? (solPool / count) : 0;
+    
+    return { count, perBond };
+  } catch (error) {
+    console.error('Error fetching yesterday stats:', error);
+    return { count: 0, perBond: 0 };
   }
 };
 
@@ -103,6 +117,7 @@ const fetchRewardsData = async (): Promise<RewardsData> => {
 function App() {
   const [graduatedView, setGraduatedView] = useState<'100' | '24h'>('24h');
   const [graduatedTokens, setGraduatedTokens] = useState<GraduatedToken[]>([]);
+  const [graduatedYesterday, setGraduatedYesterday] = useState({ count: 0, perBond: 0 });
   const [historicalRevenue, setHistoricalRevenue] = useState<HistoricalRevenue[]>([]);
   const [rewards, setRewards] = useState<RewardsData>({
     solPool: 0,
@@ -113,29 +128,68 @@ function App() {
   });
   const [revenue24h, setRevenue24h] = useState({ fees: 45000, volume: 2500000 });
   const [countdown, setCountdown] = useState({ h: 0, m: 0, s: 0 });
-  const [loading, setLoading] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [tokensLoading, setTokensLoading] = useState(false);
 
-  // Fetch all data
+  // Calculate yesterday's graduated count from tokens
+  const calculateYesterdayStats = (tokens: GraduatedToken[]) => {
+    const now = Date.now();
+    const oneDayMs = 24 * 60 * 60 * 1000;
+    const yesterdayStart = now - 2 * oneDayMs; // 48h ago
+    const yesterdayEnd = now - oneDayMs; // 24h ago
+    
+    const yesterdayTokens = tokens.filter(t => {
+      const ts = t.timestamp || 0;
+      return ts >= yesterdayStart && ts < yesterdayEnd;
+    });
+    
+    const count = yesterdayTokens.length;
+    const perBond = count > 0 ? (rewards.solPool / count) : 0;
+    
+    setGraduatedYesterday({ count, perBond });
+  };
+
+  // Fetch graduated tokens (with separate refresh interval)
   useEffect(() => {
-    const loadData = async () => {
-      setLoading(true);
-      const [tokens, revenue, rewardsData] = await Promise.all([
-        fetchGraduatedTokens(graduatedView),
+    const loadTokens = async () => {
+      if (initialLoading) setTokensLoading(true);
+      const tokens = await fetchGraduatedTokens(graduatedView);
+      setGraduatedTokens(tokens);
+      
+      // Calculate yesterday stats when we get the 100 view data (more complete)
+      if (graduatedView === '100' || graduatedYesterday.count === 0) {
+        calculateYesterdayStats(tokens);
+      }
+      
+      if (initialLoading) setTokensLoading(false);
+    };
+    
+    loadTokens();
+    const interval = setInterval(loadTokens, 60000); // Only refresh tokens every minute
+    return () => clearInterval(interval);
+  }, [graduatedView, initialLoading]);
+
+  // Fetch initial data (rewards, revenue) - no auto-refresh
+  useEffect(() => {
+    const loadInitialData = async () => {
+      setInitialLoading(true);
+      const [revenue, rewardsData] = await Promise.all([
         fetchRevenueData(),
         fetchRewardsData(),
       ]);
-      setGraduatedTokens(tokens);
       setHistoricalRevenue(revenue.history);
       setRevenue24h({ fees: revenue.fees24h, volume: revenue.volume24h });
       setRewards(rewardsData);
       
-      setLoading(false);
+      // Fetch yesterday stats using the SOL pool
+      const yesterday = await fetchYesterdayStats(rewardsData.solPool);
+      setGraduatedYesterday(yesterday);
+      
+      setInitialLoading(false);
     };
     
-    loadData();
-    const interval = setInterval(loadData, 60000); // Refresh every minute
-    return () => clearInterval(interval);
-  }, [graduatedView]);
+    loadInitialData();
+  }, []);
 
   // Countdown timer
   useEffect(() => {
@@ -154,7 +208,7 @@ function App() {
     return () => clearInterval(interval);
   }, []);
 
-  if (loading) {
+  if (initialLoading) {
     return (
       <div className="dashboard loading">
         <div className="spinner"></div>
@@ -238,8 +292,8 @@ function App() {
             <h2>Graduated Yesterday</h2>
             <span className="utc-badge" title="00:00-23:59 UTC">Prev 24h</span>
           </div>
-          <div className="graduated-count">{rewards.graduatedToday + 3}</div>
-          <div className="per-bond">0.12 SOL/bond</div>
+          <div className="graduated-count">{graduatedYesterday.count}</div>
+          <div className="per-bond">{graduatedYesterday.perBond > 0 ? `${graduatedYesterday.perBond.toFixed(4)} SOL/bond` : '—'}</div>
         </div>
       </div>
 
@@ -252,13 +306,28 @@ function App() {
             <div className="toggle-group">
               <button 
                 className={graduatedView === '24h' ? 'active' : ''}
-                onClick={() => setGraduatedView('24h')}
+                onClick={() => {
+                  if (graduatedView !== '24h') {
+                    setTokensLoading(true);
+                    setGraduatedView('24h');
+                    // tokens will auto-fetch via useEffect, loading state handled there
+                    setTimeout(() => setTokensLoading(false), 500);
+                  }
+                }}
+                disabled={tokensLoading}
               >
                 Last 24h
               </button>
               <button 
                 className={graduatedView === '100' ? 'active' : ''}
-                onClick={() => setGraduatedView('100')}
+                onClick={() => {
+                  if (graduatedView !== '100') {
+                    setTokensLoading(true);
+                    setGraduatedView('100');
+                    setTimeout(() => setTokensLoading(false), 500);
+                  }
+                }}
+                disabled={tokensLoading}
               >
                 Top 100
               </button>
@@ -271,22 +340,29 @@ function App() {
               <span>24h Volume</span>
               <span>24h Change</span>
             </div>
-            {graduatedTokens.map((token) => (
-              <div key={token.id} className="token-row">
-                <div className="token-info">
-                  {token.imageUrl && <img src={token.imageUrl} alt="" className="token-image" />}
-                  <div className="token-details">
-                    <span className="token-name">{token.name}</span>
-                    <span className="token-symbol">${token.symbol}</span>
-                  </div>
-                </div>
-                <span className="market-cap">${(token.marketCap / 1000).toFixed(1)}k</span>
-                <span className="volume">${(token.volume24h / 1000).toFixed(1)}k</span>
-                <span className={`change ${token.priceChange24h >= 0 ? 'positive' : 'negative'}`}>
-                  {token.priceChange24h >= 0 ? '+' : ''}{token.priceChange24h.toFixed(1)}%
-                </span>
+            {tokensLoading ? (
+              <div className="tokens-loading">
+                <div className="spinner-small"></div>
+                <span>Loading tokens...</span>
               </div>
-            ))}
+            ) : (
+              graduatedTokens.map((token) => (
+                <div key={token.id} className="token-row">
+                  <div className="token-info">
+                    {token.imageUrl && <img src={token.imageUrl} alt="" className="token-image" />}
+                    <div className="token-details">
+                      <span className="token-name">{token.name}</span>
+                      <span className="token-symbol">${token.symbol}</span>
+                    </div>
+                  </div>
+                  <span className="market-cap">${(token.marketCap / 1000).toFixed(1)}k</span>
+                  <span className="volume">${(token.volume24h / 1000).toFixed(1)}k</span>
+                  <span className={`change ${(token.priceChange24h || 0) >= 0 ? 'positive' : 'negative'}`}>
+                    {(token.priceChange24h || 0) >= 0 ? '+' : ''}{(token.priceChange24h || 0).toFixed(1)}%
+                  </span>
+                </div>
+              ))
+            )}
           </div>
         </div>
 

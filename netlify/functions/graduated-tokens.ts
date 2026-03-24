@@ -15,7 +15,7 @@ export const handler: Handler = async (event) => {
     const params = event.queryStringParameters || {};
     const timeRange = params.range || '24h';
     
-    const apiUrl = 'https://launch-mint-v1.raydium.io/get/list?platformId=FfYek5vEz23cMkWsdJwG2oa6EphsvXSHrGpdALN4g6W1,82NMHVCKwehXgbXMyzL41mvv3sdkypaMCtTxvJ4CtTzm,BuM6KDpWiTcxvrpXywWFiw45R2RNH8WURdvqoTDV1BW4&sort=new&size=100&mintType=graduated&includeNsfw=true';
+    const apiUrl = 'https://launch-mint-v1.raydium.io/get/list?platformId=FfYek5vEz23cMkWsdJwG2oa6EphsvXSHrGpdALN4g6W1,82NMHVCKwehXgbXMyzL41mvv3sdkypaMCtTxvJ4CtTzm,BuM6KDpWiTcxvrpXywWFiw45R2RNH8WURdvqoTDV1BW4&sort=new&size=200&mintType=graduated&includeNsfw=true';
     
     const response = await fetch(apiUrl);
     const result = await response.json();
@@ -45,7 +45,7 @@ export const handler: Handler = async (event) => {
       symbol: token.symbol || '$???',
       marketCap: token.marketCap || 0,
       volume24h: token.volumeU || token.volume24h || token.volume || 0,
-      priceChange24h: token.priceChange24h || token.price_change_24h || 0,
+      priceChange24h: token.priceChange24h || token.price_change_24h || token.price_change || token.priceChange || token.change24h || token.change_24h || 0,
       timestamp: token.createAt || token.created_at || Date.now(),
       imageUrl: token.imgUrl || token.icon || token.image || '',
     }));
