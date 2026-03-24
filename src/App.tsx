@@ -579,13 +579,11 @@ function App() {
                     <div className="token-info">
                       <div className="token-image-container">
                         {token.imageUrl ? (
-                          <img 
-                            src={token.imageUrl} 
-                            alt="" 
-                            className="token-image" 
-                            referrerPolicy="no-referrer"
-                            crossOrigin="anonymous"
-                            onError={(e) => { 
+                          <img
+                            src={`/.netlify/functions/image-proxy?url=${encodeURIComponent(token.imageUrl)}`}
+                            alt=""
+                            className="token-image"
+                            onError={(e) => {
                               const target = e.target as HTMLImageElement;
                               target.style.display = 'none';
                               const placeholder = target.nextElementSibling as HTMLElement;
