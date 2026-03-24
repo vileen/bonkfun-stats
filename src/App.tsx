@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
-import { Trophy, DollarSign, Clock, TrendingUp, Wallet, Flame, ExternalLink, Info } from 'lucide-react';
+import { Trophy, DollarSign, Clock, TrendingUp, Wallet, Flame, ExternalLink, Info, GripVertical } from 'lucide-react';
 import './App.css';
 
 // Types
@@ -138,6 +138,43 @@ function App() {
     const saved = localStorage.getItem('bonkfun-selected-months');
     return saved ? JSON.parse(saved) : [getCurrentMonth()];
   });
+
+  // Section order for drag-and-drop (1: stats tiles, 2: graduated tokens, 3: revenue history)
+  const [sectionOrder, setSectionOrder] = useState<number[]>(() => {
+    const saved = localStorage.getItem('bonkfun-section-order');
+    return saved ? JSON.parse(saved) : [1, 2, 3];
+  });
+  const [draggedSection, setDraggedSection] = useState<number | null>(null);
+
+  // Save section order to localStorage
+  useEffect(() => {
+    localStorage.setItem('bonkfun-section-order', JSON.stringify(sectionOrder));
+  }, [sectionOrder]);
+
+  // Handle drag start
+  const handleDragStart = (sectionId: number) => {
+    setDraggedSection(sectionId);
+  };
+
+  // Handle drag over
+  const handleDragOver = (e: React.DragEvent, targetSection: number) => {
+    e.preventDefault();
+    if (draggedSection === null || draggedSection === targetSection) return;
+
+    const newOrder = [...sectionOrder];
+    const dragIndex = newOrder.indexOf(draggedSection);
+    const targetIndex = newOrder.indexOf(targetSection);
+
+    newOrder.splice(dragIndex, 1);
+    newOrder.splice(targetIndex, 0, draggedSection);
+
+    setSectionOrder(newOrder);
+  };
+
+  // Handle drag end
+  const handleDragEnd = () => {
+    setDraggedSection(null);
+  };
 
   // Calculate filtered revenue data and totals based on selected months
   const filteredRevenue = filterByMonths(historicalRevenue, selectedMonths);
@@ -335,6 +372,290 @@ function App() {
     );
   }
 
+  // Render section content based on section ID
+  const renderSectionContent = (sectionId: number) => {
+    switch (sectionId) {
+      case 1:
+        return (
+          <div className="stats-grid">
+            {/* Rewards Pool */}
+            <div className="stat-card rewards-card">
+              <div className="card-header">
+                <Trophy className="icon-yellow" />
+                <h2>Today's Reward Pool</h2>
+              </div>
+              <div className="reward-amounts">
+                <div className="reward-item">
+                  <span className="amount">{rewards.solPool.toFixed(2)}</span>
+                  <span className="label">SOL</span>
+                </div>
+                <div className="reward-item">
+                  <span className="amount">{rewards.usd1Pool.toFixed(2)}</span>
+                  <span className="label">USD1</span>
+                </div>
+              </div>
+              <div className="countdown">
+                <Clock className="icon-small" />
+                <span>Next: {String(countdown.h).padStart(2, '0')}h {String(countdown.m).padStart(2, '0')}m {String(countdown.s).padStart(2, '0')}s</span>
+              </div>
+            </div>
+
+            {/* 24h Revenue */}
+            <div className="stat-card revenue-card">
+              <div className="card-header">
+                <DollarSign className="icon-green" />
+                <h2>24h Revenue</h2>
+              </div>
+              <div className="revenue-stats">
+                <div className="revenue-item">
+                  <span className="amount">${revenue24h.fees.toLocaleString()}</span>
+                  <span className="label">Fees</span>
+                </div>
+                <div className="revenue-item">
+                  <span className="amount">${(revenue24h.volume / 1000000).toFixed(2)}M</span>
+                  <span className="label">Volume</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Graduated Today */}
+            <div className="stat-card graduated-card">
+              <div className="card-header">
+                <TrendingUp className="icon-blue" />
+                <h2>Graduated Today</h2>
+                <span className="utc-badge" title="Since 00:00 UTC">00:00 UTC</span>
+              </div>
+              <div className="graduated-count">
+                {graduatedToday.count}
+                {graduatedToday.hasMore && <span className="count-suffix">+</span>}
+              </div>
+              <div className="per-bond">
+                {graduatedToday.count > 0 ? `${(rewards.solPool / graduatedToday.count).toFixed(4)} SOL/bond` : '—'}
+                {graduatedToday.hasMore && <span className="limit-note" title="API limit: 100 max. Actual count may be higher.">*</span>}
+              </div>
+              {graduatedToday.hasMore && (
+                <div className="limit-warning">
+                  <Info size={12} /> API limited to 100. Actual may be higher.
+                </div>
+              )}
+            </div>
+
+            {/* Graduated Yesterday */}
+            <div className="stat-card graduated-card yesterday">
+              <div className="card-header">
+                <TrendingUp className="icon-blue" />
+                <h2>Graduated Yesterday</h2>
+                <span className="utc-badge" title="00:00-23:59 UTC">prev day</span>
+              </div>
+              <div className="graduated-count">
+                {graduatedYesterday.count}
+                {graduatedYesterday.hasMore && <span className="count-suffix">+</span>}
+              </div>
+              <div className="per-bond">
+                {graduatedYesterday.perBond > 0 ? `${graduatedYesterday.perBond.toFixed(4)} SOL/bond` : '—'}
+                {graduatedYesterday.hasMore && <span className="limit-note" title="API limit: 100 max. Yesterday count may be incomplete.">*</span>}
+              </div>
+              {graduatedYesterday.hasMore && (
+                <div className="limit-warning">
+                  <Info size={12} /> API limited to 100. Count incomplete.
+                </div>
+              )}
+              {!graduatedYesterday.hasMore && graduatedYesterday.count === 0 && graduatedToday.hasMore && (
+                <div className="limit-warning unknown">
+                  <Info size={12} /> Unknown — today has 100+ graduates
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      case 2:
+        return (
+          <div className="section graduated-section">
+            <div className="section-header">
+              <h2>Graduated Tokens</h2>
+              <div className="toggle-group four-buttons">
+                <button
+                  className={graduatedView === 'today' ? 'active' : ''}
+                  onClick={() => {
+                    if (graduatedView !== 'today') {
+                      setGraduatedView('today');
+                    }
+                  }}
+                  disabled={tokensLoading}
+                >
+                  Today
+                </button>
+                <button
+                  className={graduatedView === '24h' ? 'active' : ''}
+                  onClick={() => {
+                    if (graduatedView !== '24h') {
+                      setGraduatedView('24h');
+                    }
+                  }}
+                  disabled={tokensLoading}
+                >
+                  24h
+                </button>
+                <button
+                  className={graduatedView === 'yesterday' ? 'active' : ''}
+                  onClick={() => {
+                    if (graduatedView !== 'yesterday') {
+                      setGraduatedView('yesterday');
+                    }
+                  }}
+                  disabled={tokensLoading}
+                >
+                  Yesterday
+                </button>
+                <button
+                  className={graduatedView === '100' ? 'active' : ''}
+                  onClick={() => {
+                    if (graduatedView !== '100') {
+                      setGraduatedView('100');
+                    }
+                  }}
+                  disabled={tokensLoading}
+                >
+                  Top 100
+                </button>
+              </div>
+            </div>
+            <div className="tokens-table">
+              <div className="table-header">
+                <span>
+                  Token
+                  {graduatedView === 'today' && graduatedToday.hasMore && (
+                    <span className="header-note"> ({graduatedToday.count}+)</span>
+                  )}
+                  {graduatedView === 'yesterday' && graduatedYesterday.hasMore && (
+                    <span className="header-note"> ({graduatedYesterday.count}+)</span>
+                  )}
+                  {graduatedView === '100' && tokensHasMore && (
+                    <span className="header-note" title="Showing 100 of 100+ tokens"> (100+)</span>
+                  )}
+                </span>
+                <span>Market Cap</span>
+                <span>24h Volume</span>
+                <span>Date</span>
+              </div>
+              {tokensLoading ? (
+                <div className="tokens-loading">
+                  <div className="spinner-small"></div>
+                  <span>Loading tokens...</span>
+                </div>
+              ) : (
+                graduatedTokens.map((token) => (
+                  <div key={token.id} className="token-row">
+                    <div className="token-info">
+                      <div className="token-image-container">
+                        {token.imageUrl ? (
+                          <img 
+                            src={token.imageUrl} 
+                            alt="" 
+                            className="token-image" 
+                            referrerPolicy="no-referrer"
+                            crossOrigin="anonymous"
+                            onError={(e) => { 
+                              const target = e.target as HTMLImageElement;
+                              target.style.display = 'none';
+                              const placeholder = target.nextElementSibling as HTMLElement;
+                              if (placeholder) placeholder.style.display = 'flex';
+                            }}
+                          />
+                        ) : null}
+                        <div 
+                          className="token-image-placeholder" 
+                          style={{ display: token.imageUrl ? 'none' : 'flex' }}
+                        >
+                          <span className="token-initial">{token.name.charAt(0).toUpperCase()}</span>
+                        </div>
+                      </div>
+                      <div className="token-details">
+                        <span className="token-name">{token.name}</span>
+                        <span className="token-symbol">${token.symbol}</span>
+                      </div>
+                    </div>
+                    <span className="market-cap">${(token.marketCap / 1000).toFixed(1)}k</span>
+                    <span className="volume">${(token.volume24h / 1000).toFixed(1)}k</span>
+                    <span className="token-date">
+                      {new Date(token.timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                      {' '}
+                      {new Date(token.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        );
+      case 3:
+        return (
+          <div className="section chart-section">
+            <div className="section-header">
+              <Wallet className="icon-purple" />
+              <h2>Revenue History</h2>
+            </div>
+            <div className="revenue-totals">
+              <div className="revenue-total-item">
+                <span className="total-label">Fees</span>
+                <span className="total-value">${filteredTotal.fees.toLocaleString()}</span>
+              </div>
+              <div className="revenue-total-item">
+                <span className="total-label">Volume</span>
+                <span className="total-value">${(filteredTotal.volume / 1000000).toFixed(2)}M</span>
+              </div>
+            </div>
+
+            {/* Month Selector */}
+            <div className="month-selector">
+              <button
+                className={selectedMonths.length === 0 ? 'active' : ''}
+                onClick={clearMonthSelection}
+              >
+                All
+              </button>
+              {getUniqueMonths(historicalRevenue).map(month => (
+                <button
+                  key={month}
+                  className={selectedMonths.includes(month) ? 'active' : ''}
+                  onClick={() => toggleMonth(month)}
+                >
+                  {month}
+                </button>
+              ))}
+            </div>
+
+            <div className="chart-container">
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={filteredRevenue}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#2a2a3a" />
+                  <XAxis 
+                    dataKey="date" 
+                    stroke="#666" 
+                    fontSize={10}
+                    tickLine={false}
+                  />
+                  <YAxis 
+                    stroke="#666" 
+                    fontSize={10}
+                    tickLine={false}
+                    tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
+                  />
+                  <RechartsTooltip 
+                    contentStyle={{ backgroundColor: '#1a1a25', border: '1px solid #2a2a3a' }}
+                    formatter={(value) => [`$${Number(value).toLocaleString()}`, 'Fees']}
+                  />
+                  <Bar dataKey="fees" fill="#22c55e" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        );
+      default:
+        return null;
+    }
+  };
+
   return (
     <div className="dashboard">
       <header className="dashboard-header">
@@ -353,280 +674,23 @@ function App() {
         </div>
       </header>
 
-      {/* Top Stats Row */}
-      <div className="stats-grid">
-        {/* Rewards Pool */}
-        <div className="stat-card rewards-card">
-          <div className="card-header">
-            <Trophy className="icon-yellow" />
-            <h2>Today's Reward Pool</h2>
-          </div>
-          <div className="reward-amounts">
-            <div className="reward-item">
-              <span className="amount">{rewards.solPool.toFixed(2)}</span>
-              <span className="label">SOL</span>
-            </div>
-            <div className="reward-item">
-              <span className="amount">{rewards.usd1Pool.toFixed(2)}</span>
-              <span className="label">USD1</span>
-            </div>
-          </div>
-          <div className="countdown">
-            <Clock className="icon-small" />
-            <span>Next: {String(countdown.h).padStart(2, '0')}h {String(countdown.m).padStart(2, '0')}m {String(countdown.s).padStart(2, '0')}s</span>
-          </div>
-        </div>
-
-        {/* 24h Revenue */}
-        <div className="stat-card revenue-card">
-          <div className="card-header">
-            <DollarSign className="icon-green" />
-            <h2>24h Revenue</h2>
-          </div>
-          <div className="revenue-stats">
-            <div className="revenue-item">
-              <span className="amount">${revenue24h.fees.toLocaleString()}</span>
-              <span className="label">Fees</span>
-            </div>
-            <div className="revenue-item">
-              <span className="amount">${(revenue24h.volume / 1000000).toFixed(2)}M</span>
-              <span className="label">Volume</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Graduated Today */}
-        <div className="stat-card graduated-card">
-          <div className="card-header">
-            <TrendingUp className="icon-blue" />
-            <h2>Graduated Today</h2>
-            <span className="utc-badge" title="Since 00:00 UTC">00:00 UTC</span>
-          </div>
-          <div className="graduated-count">
-            {graduatedToday.count}
-            {graduatedToday.hasMore && <span className="count-suffix">+</span>}
-          </div>
-          <div className="per-bond">
-            {graduatedToday.count > 0 ? `${(rewards.solPool / graduatedToday.count).toFixed(4)} SOL/bond` : '—'}
-            {graduatedToday.hasMore && <span className="limit-note" title="API limit: 100 max. Actual count may be higher.">*</span>}
-          </div>
-          {graduatedToday.hasMore && (
-            <div className="limit-warning">
-              <Info size={12} /> API limited to 100. Actual may be higher.
-            </div>
-          )}
-        </div>
-
-        {/* Graduated Yesterday */}
-        <div className="stat-card graduated-card yesterday">
-          <div className="card-header">
-            <TrendingUp className="icon-blue" />
-            <h2>Graduated Yesterday</h2>
-            <span className="utc-badge" title="00:00-23:59 UTC">prev day</span>
-          </div>
-          <div className="graduated-count">
-            {graduatedYesterday.count}
-            {graduatedYesterday.hasMore && <span className="count-suffix">+</span>}
-          </div>
-          <div className="per-bond">
-            {graduatedYesterday.perBond > 0 ? `${graduatedYesterday.perBond.toFixed(4)} SOL/bond` : '—'}
-            {graduatedYesterday.hasMore && <span className="limit-note" title="API limit: 100 max. Yesterday count may be incomplete.">*</span>}
-          </div>
-          {graduatedYesterday.hasMore && (
-            <div className="limit-warning">
-              <Info size={12} /> API limited to 100. Count incomplete.
-            </div>
-          )}
-          {!graduatedYesterday.hasMore && graduatedYesterday.count === 0 && graduatedToday.hasMore && (
-            <div className="limit-warning unknown">
-              <Info size={12} /> Unknown — today has 100+ graduates
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Main Content */}
+      {/* Main Content - Draggable Sections */}
       <div className="main-content">
-        {/* Graduated Tokens */}
-        <div className="section graduated-section">
-          <div className="section-header">
-            <h2>Graduated Tokens</h2>
-            <div className="toggle-group four-buttons">
-              <button
-                className={graduatedView === 'today' ? 'active' : ''}
-                onClick={() => {
-                  if (graduatedView !== 'today') {
-                    setGraduatedView('today');
-                  }
-                }}
-                disabled={tokensLoading}
-              >
-                Today
-              </button>
-              <button
-                className={graduatedView === '24h' ? 'active' : ''}
-                onClick={() => {
-                  if (graduatedView !== '24h') {
-                    setGraduatedView('24h');
-                  }
-                }}
-                disabled={tokensLoading}
-              >
-                24h
-              </button>
-              <button
-                className={graduatedView === 'yesterday' ? 'active' : ''}
-                onClick={() => {
-                  if (graduatedView !== 'yesterday') {
-                    setGraduatedView('yesterday');
-                  }
-                }}
-                disabled={tokensLoading}
-              >
-                Yesterday
-              </button>
-              <button
-                className={graduatedView === '100' ? 'active' : ''}
-                onClick={() => {
-                  if (graduatedView !== '100') {
-                    setGraduatedView('100');
-                  }
-                }}
-                disabled={tokensLoading}
-              >
-                Top 100
-              </button>
+        {sectionOrder.map((sectionId) => (
+          <div
+            key={sectionId}
+            className="draggable-section"
+            draggable
+            onDragStart={() => handleDragStart(sectionId)}
+            onDragOver={(e) => handleDragOver(e, sectionId)}
+            onDragEnd={handleDragEnd}
+          >
+            <div className="drag-handle">
+              <GripVertical size={20} />
             </div>
+            {renderSectionContent(sectionId)}
           </div>
-          <div className="tokens-table">
-            <div className="table-header">
-              <span>
-                Token
-                {graduatedView === 'today' && graduatedToday.hasMore && (
-                  <span className="header-note"> ({graduatedToday.count}+)</span>
-                )}
-                {graduatedView === 'yesterday' && graduatedYesterday.hasMore && (
-                  <span className="header-note"> ({graduatedYesterday.count}+)</span>
-                )}
-                {graduatedView === '100' && tokensHasMore && (
-                  <span className="header-note" title="Showing 100 of 100+ tokens"> (100+)</span>
-                )}
-              </span>
-              <span>Market Cap</span>
-              <span>24h Volume</span>
-              <span>Date</span>
-            </div>
-            {tokensLoading ? (
-              <div className="tokens-loading">
-                <div className="spinner-small"></div>
-                <span>Loading tokens...</span>
-              </div>
-            ) : (
-              graduatedTokens.map((token) => (
-                <div key={token.id} className="token-row">
-                  <div className="token-info">
-                    <div className="token-image-container">
-                      {token.imageUrl ? (
-                        <img 
-                          src={token.imageUrl} 
-                          alt="" 
-                          className="token-image" 
-                          referrerPolicy="no-referrer"
-                          crossOrigin="anonymous"
-                          onError={(e) => { 
-                            const target = e.target as HTMLImageElement;
-                            target.style.display = 'none';
-                            const placeholder = target.nextElementSibling as HTMLElement;
-                            if (placeholder) placeholder.style.display = 'flex';
-                          }}
-                        />
-                      ) : null}
-                      <div 
-                        className="token-image-placeholder" 
-                        style={{ display: token.imageUrl ? 'none' : 'flex' }}
-                      >
-                        <span className="token-initial">{token.name.charAt(0).toUpperCase()}</span>
-                      </div>
-                    </div>
-                    <div className="token-details">
-                      <span className="token-name">{token.name}</span>
-                      <span className="token-symbol">${token.symbol}</span>
-                    </div>
-                  </div>
-                  <span className="market-cap">${(token.marketCap / 1000).toFixed(1)}k</span>
-                  <span className="volume">${(token.volume24h / 1000).toFixed(1)}k</span>
-                  <span className="token-date">
-                    {new Date(token.timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                    {' '}
-                    {new Date(token.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
-                  </span>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-
-        {/* Historical Revenue */}
-        <div className="section chart-section">
-          <div className="section-header">
-            <Wallet className="icon-purple" />
-            <h2>Revenue History</h2>
-          </div>
-          <div className="revenue-totals">
-            <div className="revenue-total-item">
-              <span className="total-label">Fees</span>
-              <span className="total-value">${filteredTotal.fees.toLocaleString()}</span>
-            </div>
-            <div className="revenue-total-item">
-              <span className="total-label">Volume</span>
-              <span className="total-value">${(filteredTotal.volume / 1000000).toFixed(2)}M</span>
-            </div>
-          </div>
-
-          {/* Month Selector */}
-          <div className="month-selector">
-            <button
-              className={selectedMonths.length === 0 ? 'active' : ''}
-              onClick={clearMonthSelection}
-            >
-              All
-            </button>
-            {getUniqueMonths(historicalRevenue).map(month => (
-              <button
-                key={month}
-                className={selectedMonths.includes(month) ? 'active' : ''}
-                onClick={() => toggleMonth(month)}
-              >
-                {month}
-              </button>
-            ))}
-          </div>
-
-          <div className="chart-container">
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={filteredRevenue}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#2a2a3a" />
-                <XAxis 
-                  dataKey="date" 
-                  stroke="#666" 
-                  fontSize={10}
-                  tickLine={false}
-                />
-                <YAxis 
-                  stroke="#666" 
-                  fontSize={10}
-                  tickLine={false}
-                  tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
-                />
-                <RechartsTooltip 
-                  contentStyle={{ backgroundColor: '#1a1a25', border: '1px solid #2a2a3a' }}
-                  formatter={(value) => [`$${Number(value).toLocaleString()}`, 'Fees']}
-                />
-                <Bar dataKey="fees" fill="#22c55e" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
+        ))}
       </div>
 
       <footer className="dashboard-footer">

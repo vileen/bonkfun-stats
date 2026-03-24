@@ -211,11 +211,79 @@ body {
   gap: 24px;
 }
 
+/* Draggable Sections */
+.draggable-section {
+  position: relative;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  transition: box-shadow 0.2s, border-color 0.2s;
+}
+
+.draggable-section:hover {
+  border-color: #3a3a4a;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+.draggable-section[draggable="true"] {
+  cursor: grab;
+}
+
+.draggable-section[draggable="true"]:active {
+  cursor: grabbing;
+}
+
+.drag-handle {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  cursor: grab;
+  transition: background 0.2s, color 0.2s;
+  z-index: 10;
+}
+
+.drag-handle:hover {
+  background: var(--border-color);
+  color: var(--text-primary);
+}
+
+.drag-handle svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* When dragging, style the drag handle */
+.draggable-section[draggable="true"]:active .drag-handle {
+  cursor: grabbing;
+  background: var(--accent-orange);
+  color: white;
+}
+
 .section {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: 16px;
   padding: 24px;
+}
+
+/* Remove border/background when section is inside draggable-section */
+.draggable-section .section {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+}
+
+/* Stats grid inside draggable section shouldn't have bottom margin */
+.draggable-section .stats-grid {
+  margin-bottom: 0;
 }
 
 .section-header {
