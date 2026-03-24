@@ -401,21 +401,29 @@ function App() {
               graduatedTokens.map((token) => (
                 <div key={token.id} className="token-row">
                   <div className="token-info">
-                    {token.imageUrl ? (
-                      <img 
-                        src={token.imageUrl} 
-                        alt="" 
-                        className="token-image" 
-                        referrerPolicy="no-referrer"
-                        crossOrigin="anonymous"
-                        onError={(e) => { 
-                          const target = e.target as HTMLImageElement;
-                          target.style.display = 'none'; 
-                        }}
-                      />
-                    ) : (
-                      <div className="token-image-placeholder" />
-                    )}
+                    <div className="token-image-container">
+                      {token.imageUrl ? (
+                        <img 
+                          src={token.imageUrl} 
+                          alt="" 
+                          className="token-image" 
+                          referrerPolicy="no-referrer"
+                          crossOrigin="anonymous"
+                          onError={(e) => { 
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = 'none';
+                            const placeholder = target.nextElementSibling as HTMLElement;
+                            if (placeholder) placeholder.style.display = 'flex';
+                          }}
+                        />
+                      ) : null}
+                      <div 
+                        className="token-image-placeholder" 
+                        style={{ display: token.imageUrl ? 'none' : 'flex' }}
+                      >
+                        <span className="token-initial">{token.name.charAt(0).toUpperCase()}</span>
+                      </div>
+                    </div>
                     <div className="token-details">
                       <span className="token-name">{token.name}</span>
                       <span className="token-symbol">${token.symbol}</span>

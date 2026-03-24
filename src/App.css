@@ -525,20 +525,43 @@ body {
 }
 
 /* Token Image */
+.token-image-container {
+  position: relative;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+}
+
 .token-image {
   width: 32px;
   height: 32px;
   border-radius: 50%;
   background: var(--bg-secondary);
   object-fit: cover;
+  position: absolute;
+  top: 0;
+  left: 0;
 }
 
 .token-image-placeholder {
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--bg-secondary) 0%, #2a2a3a 100%);
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.token-initial {
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+  text-transform: uppercase;
 }
 
 .token-details {
