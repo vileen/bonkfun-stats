@@ -96,13 +96,13 @@ export const handler: Handler = async (event) => {
           let jsonStr = rawMatch[1].replace(/\\"/g, '"');
           const data = JSON.parse(jsonStr);
           if (Array.isArray(data.data)) {
+            // Include ALL historical data, not just last 30 days
             history = data.data
               .map((item: any) => ({
                 date: new Date(item.day).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
                 fees: Math.round(item.totalUsd || 0),
                 volume: Math.round((item.totalUsd || 0) * 50),
-              }))
-              .slice(-30);
+              }));
             debug.steps.push({ method: 'rawMatch', success: true, count: history.length });
           }
         } catch (e) {
@@ -111,13 +111,17 @@ export const handler: Handler = async (event) => {
       }
     }
 
+    // Calculate totals from all history
+    const totalFees = history.reduce((sum, item) => sum + item.fees, 0);
+    const totalVolume = history.reduce((sum, item) => sum + item.volume, 0);
+
     debug.steps.push({ finalHistoryLength: history.length });
     console.log('Revenue debug:', JSON.stringify(debug, null, 2));
 
     return {
       statusCode: 200,
       headers,
-      body: JSON.stringify({ fees24h, volume24h, history, debug }),
+      body: JSON.stringify({ fees24h, volume24h, history, total: { fees: totalFees, volume: totalVolume } }),
     };
   } catch (error) {
     console.error('Error scraping revenue:', error);
