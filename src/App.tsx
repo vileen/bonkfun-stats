@@ -117,6 +117,7 @@ function App() {
   const [allTokens, setAllTokens] = useState<GraduatedToken[]>([]);
   const [graduatedYesterday, setGraduatedYesterday] = useState({ count: 0, perBond: 0, hasMore: false });
   const [graduatedToday, setGraduatedToday] = useState({ count: 0, hasMore: false });
+  const [graduatedLast24h, setGraduatedLast24h] = useState({ count: 0, hasMore: false });
   const [tokensHasMore, setTokensHasMore] = useState(false);
   const [historicalRevenue, setHistoricalRevenue] = useState<HistoricalRevenue[]>([]);
   const [rewards, setRewards] = useState<RewardsData>({
@@ -286,9 +287,16 @@ function App() {
       setGraduatedTokens(filterTokensByView(tokens, graduatedView));
       setTokensHasMore(hasMore);
 
-      // Calculate today and yesterday stats
+      // Calculate today, yesterday, and 24h stats
       calculateTodayStats(tokens, hasMore);
       calculateYesterdayStats(tokens, hasMore);
+
+      // Calculate last 24h (rolling window)
+      const oneDayMs = 24 * 60 * 60 * 1000;
+      const last24hTokens = tokens.filter(t => (t.timestamp || 0) >= Date.now() - oneDayMs);
+      const last24hCount = last24hTokens.length;
+      const last24hHasMore = hasMore && last24hCount > 0;
+      setGraduatedLast24h({ count: last24hCount, hasMore: last24hHasMore });
 
       if (initialLoading) setTokensLoading(false);
     };
@@ -463,6 +471,28 @@ function App() {
               {!graduatedYesterday.hasMore && graduatedYesterday.count === 0 && graduatedToday.hasMore && (
                 <div className="limit-warning unknown">
                   <Info size={12} /> Unknown — today has 100+ graduates
+                </div>
+              )}
+            </div>
+
+            {/* Graduated Last 24hrs */}
+            <div className="stat-card graduated-card last-24h">
+              <div className="card-header">
+                <TrendingUp className="icon-green" />
+                <h2>Graduated Last 24hrs</h2>
+                <span className="utc-badge" title="Rolling 24h window">24h</span>
+              </div>
+              <div className="graduated-count">
+                {graduatedLast24h.count}
+                {graduatedLast24h.hasMore && <span className="count-suffix">+</span>}
+              </div>
+              <div className="per-bond">
+                {graduatedLast24h.count > 0 ? `${(rewards.solPool / graduatedLast24h.count).toFixed(4)} SOL/bond` : '—'}
+                {graduatedLast24h.hasMore && <span className="limit-note" title="API limit: 100 max. Actual count may be higher.">*</span>}
+              </div>
+              {graduatedLast24h.hasMore && (
+                <div className="limit-warning">
+                  <Info size={12} /> API limited to 100. Actual may be higher.
                 </div>
               )}
             </div>

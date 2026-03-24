@@ -182,6 +182,10 @@ body {
   opacity: 0.9;
 }
 
+.graduated-card.last-24h {
+  border-left-color: var(--accent-green);
+}
+
 .utc-badge {
   font-size: 0.7rem;
   color: var(--text-secondary);
