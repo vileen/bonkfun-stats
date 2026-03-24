@@ -123,8 +123,9 @@ const fetchRewardsData = async (): Promise<RewardsData> => {
 };
 
 function App() {
-  const [graduatedView, setGraduatedView] = useState<'100' | '24h'>('24h');
+  const [graduatedView, setGraduatedView] = useState<'today' | '24h' | 'yesterday' | '100'>('today');
   const [graduatedTokens, setGraduatedTokens] = useState<GraduatedToken[]>([]);
+  const [allTokens, setAllTokens] = useState<GraduatedToken[]>([]);
   const [graduatedYesterday, setGraduatedYesterday] = useState({ count: 0, perBond: 0, hasMore: false });
   const [graduatedToday, setGraduatedToday] = useState({ count: 0, hasMore: false });
   const [tokensHasMore, setTokensHasMore] = useState(false);
@@ -159,6 +160,30 @@ function App() {
     setGraduatedToday({ count, hasMore: todayHasMore });
   };
 
+  // Filter tokens based on view
+  const filterTokensByView = (tokens: GraduatedToken[], view: 'today' | '24h' | 'yesterday' | '100'): GraduatedToken[] => {
+    const now = Date.now();
+    const oneDayMs = 24 * 60 * 60 * 1000;
+    const utcMidnight = Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), new Date().getUTCDate());
+
+    switch (view) {
+      case 'today':
+        return tokens.filter(t => (t.timestamp || 0) >= utcMidnight);
+      case '24h':
+        return tokens.filter(t => (t.timestamp || 0) >= now - oneDayMs);
+      case 'yesterday':
+        const yesterdayStart = now - 2 * oneDayMs;
+        const yesterdayEnd = now - oneDayMs;
+        return tokens.filter(t => {
+          const ts = t.timestamp || 0;
+          return ts >= yesterdayStart && ts < yesterdayEnd;
+        });
+      case '100':
+      default:
+        return tokens;
+    }
+  };
+
   // Calculate yesterday's graduated count from tokens
   const calculateYesterdayStats = (tokens: GraduatedToken[], apiHasMore: boolean) => {
     const now = Date.now();
@@ -188,7 +213,8 @@ function App() {
       if (initialLoading) setTokensLoading(true);
       // Always fetch 100 to get accurate today/yesterday counts
       const { tokens, hasMore } = await fetchGraduatedTokens('100');
-      setGraduatedTokens(tokens.slice(0, graduatedView === '24h' ? 20 : 100));
+      setAllTokens(tokens);
+      setGraduatedTokens(filterTokensByView(tokens, graduatedView));
       setTokensHasMore(hasMore);
 
       // Calculate today and yesterday stats
@@ -201,7 +227,14 @@ function App() {
     loadTokens();
     const interval = setInterval(loadTokens, 60000); // Only refresh tokens every minute
     return () => clearInterval(interval);
-  }, [graduatedView, initialLoading]);
+  }, [initialLoading]);
+
+  // Update filtered tokens when view changes
+  useEffect(() => {
+    if (allTokens.length > 0) {
+      setGraduatedTokens(filterTokensByView(allTokens, graduatedView));
+    }
+  }, [graduatedView, allTokens]);
 
   // Fetch initial data (rewards, revenue) - no auto-refresh
   useEffect(() => {
@@ -364,28 +397,45 @@ function App() {
         <div className="section graduated-section">
           <div className="section-header">
             <h2>Graduated Tokens</h2>
-            <div className="toggle-group">
-              <button 
-                className={graduatedView === '24h' ? 'active' : ''}
+            <div className="toggle-group four-buttons">
+              <button
+                className={graduatedView === 'today' ? 'active' : ''}
                 onClick={() => {
-                  if (graduatedView !== '24h') {
-                    setTokensLoading(true);
-                    setGraduatedView('24h');
-                    // tokens will auto-fetch via useEffect, loading state handled there
-                    setTimeout(() => setTokensLoading(false), 500);
+                  if (graduatedView !== 'today') {
+                    setGraduatedView('today');
                   }
                 }}
                 disabled={tokensLoading}
               >
-                Last 24h
+                Today
               </button>
-              <button 
+              <button
+                className={graduatedView === '24h' ? 'active' : ''}
+                onClick={() => {
+                  if (graduatedView !== '24h') {
+                    setGraduatedView('24h');
+                  }
+                }}
+                disabled={tokensLoading}
+              >
+                24h
+              </button>
+              <button
+                className={graduatedView === 'yesterday' ? 'active' : ''}
+                onClick={() => {
+                  if (graduatedView !== 'yesterday') {
+                    setGraduatedView('yesterday');
+                  }
+                }}
+                disabled={tokensLoading}
+              >
+                Yesterday
+              </button>
+              <button
                 className={graduatedView === '100' ? 'active' : ''}
                 onClick={() => {
                   if (graduatedView !== '100') {
-                    setTokensLoading(true);
                     setGraduatedView('100');
-                    setTimeout(() => setTokensLoading(false), 500);
                   }
                 }}
                 disabled={tokensLoading}
@@ -398,6 +448,12 @@ function App() {
             <div className="table-header">
               <span>
                 Token
+                {graduatedView === 'today' && graduatedToday.hasMore && (
+                  <span className="header-note"> ({graduatedToday.count}+)</span>
+                )}
+                {graduatedView === 'yesterday' && graduatedYesterday.hasMore && (
+                  <span className="header-note"> ({graduatedYesterday.count}+)</span>
+                )}
                 {graduatedView === '100' && tokensHasMore && (
                   <span className="header-note" title="Showing 100 of 100+ tokens"> (100+)</span>
                 )}

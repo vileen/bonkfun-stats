@@ -255,6 +255,15 @@ body {
   gap: 4px;
 }
 
+.toggle-group.four-buttons {
+  flex-wrap: wrap;
+}
+
+.toggle-group.four-buttons button {
+  padding: 8px 12px;
+  font-size: 0.85rem;
+}
+
 .toggle-group button {
   background: transparent;
   border: none;
