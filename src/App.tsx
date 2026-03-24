@@ -162,21 +162,21 @@ function App() {
 
   // Filter tokens based on view
   const filterTokensByView = (tokens: GraduatedToken[], view: 'today' | '24h' | 'yesterday' | '100'): GraduatedToken[] => {
-    const now = Date.now();
+    const now = new Date();
     const oneDayMs = 24 * 60 * 60 * 1000;
-    const utcMidnight = Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), new Date().getUTCDate());
+    const todayMidnight = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+    const yesterdayMidnight = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 1);
 
     switch (view) {
       case 'today':
-        return tokens.filter(t => (t.timestamp || 0) >= utcMidnight);
+        return tokens.filter(t => (t.timestamp || 0) >= todayMidnight);
       case '24h':
-        return tokens.filter(t => (t.timestamp || 0) >= now - oneDayMs);
+        return tokens.filter(t => (t.timestamp || 0) >= Date.now() - oneDayMs);
       case 'yesterday':
-        const yesterdayStart = now - 2 * oneDayMs;
-        const yesterdayEnd = now - oneDayMs;
+        // Calendar day: yesterday 00:00 UTC to today 00:00 UTC
         return tokens.filter(t => {
           const ts = t.timestamp || 0;
-          return ts >= yesterdayStart && ts < yesterdayEnd;
+          return ts >= yesterdayMidnight && ts < todayMidnight;
         });
       case '100':
       default:
@@ -184,16 +184,16 @@ function App() {
     }
   };
 
-  // Calculate yesterday's graduated count from tokens
+  // Calculate yesterday's graduated count from tokens (calendar day)
   const calculateYesterdayStats = (tokens: GraduatedToken[], apiHasMore: boolean) => {
-    const now = Date.now();
-    const oneDayMs = 24 * 60 * 60 * 1000;
-    const yesterdayStart = now - 2 * oneDayMs; // 48h ago
-    const yesterdayEnd = now - oneDayMs; // 24h ago
+    const now = new Date();
+    const todayMidnight = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+    const yesterdayMidnight = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 1);
 
+    // Calendar day: yesterday 00:00 UTC to today 00:00 UTC
     const yesterdayTokens = tokens.filter(t => {
       const ts = t.timestamp || 0;
-      return ts >= yesterdayStart && ts < yesterdayEnd;
+      return ts >= yesterdayMidnight && ts < todayMidnight;
     });
 
     const count = yesterdayTokens.length;
@@ -202,7 +202,7 @@ function App() {
     // Yesterday has more if API hit limit and oldest token is from yesterday
     const oldestToken = tokens[tokens.length - 1];
     const oldestTokenTime = oldestToken?.timestamp || 0;
-    const yesterdayHasMore = apiHasMore && oldestTokenTime >= yesterdayStart;
+    const yesterdayHasMore = apiHasMore && oldestTokenTime >= yesterdayMidnight && oldestTokenTime < todayMidnight;
 
     setGraduatedYesterday({ count, perBond, hasMore: yesterdayHasMore });
   };
