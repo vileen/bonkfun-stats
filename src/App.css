@@ -285,11 +285,13 @@ body {
   border-radius: 0;
 }
 
-/* Stats grid inside draggable section */
+/* Stats grid inside draggable section - no background since tiles have their own */
 .draggable-section .stats-grid {
   margin-bottom: 0;
   padding: 24px;
   padding-top: 48px;
+  background: transparent;
+  border: none;
 }
 
 .section-header {
