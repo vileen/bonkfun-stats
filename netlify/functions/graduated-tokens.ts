@@ -39,16 +39,30 @@ export const handler: Handler = async (event) => {
       };
     }
     
-    const tokens = result.data.rows.map((token: any) => ({
-      id: token.mint || token.id || String(Math.random()),
-      name: token.name || 'Unknown',
-      symbol: token.symbol || '$???',
-      marketCap: token.marketCap || 0,
-      volume24h: token.volumeU || token.volume24h || token.volume || token.vol || 0,
-      priceChange24h: token.priceChange24h ?? token.price_change_24h ?? token.price_change ?? token.priceChange ?? token.change24h ?? token.change_24h ?? token.percent ?? token.priceChangePercent ?? 0,
-      timestamp: token.createAt || token.created_at || token.createdAt || Date.now(),
-      imageUrl: token.imgUrl || token.icon || token.image || token.logo || token.logoURI || token.platformInfo?.img || '',
-    }));
+    const tokens = result.data.rows.map((token: any) => {
+      // Debug logging for image URL
+      console.log('Token image sources:', {
+        mint: token.mint,
+        imgUrl: token.imgUrl,
+        icon: token.icon,
+        image: token.image,
+        img: token.img,
+        logo: token.logo,
+        logoURI: token.logoURI,
+        platformInfoImg: token.platformInfo?.img,
+      });
+      
+      return {
+        id: token.mint || token.id || String(Math.random()),
+        name: token.name || 'Unknown',
+        symbol: token.symbol || '$???',
+        marketCap: token.marketCap || 0,
+        volume24h: token.volumeU || token.volume24h || token.volume || token.vol || 0,
+        priceChange24h: token.priceChange24h ?? token.price_change_24h ?? token.price_change ?? token.priceChange ?? token.change24h ?? token.change_24h ?? token.percent ?? token.priceChangePercent ?? 0,
+        timestamp: token.createAt || token.created_at || token.createdAt || Date.now(),
+        imageUrl: token.imgUrl || token.icon || token.image || token.img || token.logo || token.logoURI || token.uri || token.platformInfo?.img || token.platformInfo?.icon || '',
+      };
+    });
 
     // Sort by creation time (newest first)
     tokens.sort((a: any, b: any) => (b.timestamp || 0) - (a.timestamp || 0));
