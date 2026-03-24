@@ -292,20 +292,26 @@ body {
   justify-content: space-between;
   margin-bottom: 20px;
   padding-bottom: 16px;
+  padding-right: 48px;
   border-bottom: 1px solid var(--border-color);
+  position: relative;
 }
 
 .section-header h2 {
   font-size: 1.2rem;
   font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 10px;
 }
 
-.section-header svg {
+.section-header svg,
+.section-header .icon-purple,
+.section-header .icon-orange,
+.section-header .icon-green,
+.section-header .icon-blue,
+.section-header .icon-yellow {
   width: 20px;
   height: 20px;
+  margin-right: 10px;
+  flex-shrink: 0;
 }
 
 /* Toggle Group */
