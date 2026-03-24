@@ -19,15 +19,17 @@ export const handler: Handler = async (event) => {
     const apiUrl = 'https://launch-mint-v1.raydium.io/get/list?platformId=FfYek5vEz23cMkWsdJwG2oa6EphsvXSHrGpdALN4g6W1,82NMHVCKwehXgbXMyzL41mvv3sdkypaMCtTxvJ4CtTzm,BuM6KDpWiTcxvrpXywWFiw45R2RNH8WURdvqoTDV1BW4&sort=new&size=100&mintType=graduated&includeNsfw=true';
     
     const response = await fetch(apiUrl);
-    const data = await response.json();
+    const result = await response.json();
     
-    // Check if data is array
+    // Extract tokens from result.data (Raydium API structure)
+    const data = result.data || result;
+    
     if (!Array.isArray(data)) {
-      console.log('Unexpected response format:', typeof data, Object.keys(data));
+      console.log('Unexpected response format:', typeof result, Object.keys(result));
       return {
         statusCode: 200,
         headers,
-        body: JSON.stringify({ tokens: [], total: 0, error: 'Invalid response format' }),
+        body: JSON.stringify({ tokens: [], total: 0, error: 'Invalid response format', debug: { resultKeys: Object.keys(result) } }),
       };
     }
     
