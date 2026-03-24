@@ -20,74 +20,48 @@ export const handler: Handler = async (event) => {
     const response = await fetch(apiUrl);
     const result = await response.json();
     
-    // Debug log
-    console.log('Full API response:', JSON.stringify(result).slice(0, 1000));
-    
-    // Check response structure
-    if (!result.success) {
+    if (!result.success || !result.data || !Array.isArray(result.data.rows)) {
       return {
         statusCode: 200,
         headers,
         body: JSON.stringify({ 
           tokens: [], 
           total: 0,
-          error: 'API returned success=false',
-          debug: { result }
-        }),
-      };
-    }
-    
-    const tokens = result.data || [];
-    
-    if (!Array.isArray(tokens)) {
-      return {
-        statusCode: 200,
-        headers,
-        body: JSON.stringify({ 
-          tokens: [], 
-          total: 0,
-          error: 'result.data is not an array',
+          error: 'Invalid response structure',
           debug: { 
-            dataType: typeof tokens,
-            data: tokens
+            hasSuccess: result.success,
+            hasData: !!result.data,
+            hasRows: !!(result.data && result.data.rows),
+            rowsType: typeof result.data?.rows,
+            isArray: Array.isArray(result.data?.rows)
           }
         }),
       };
     }
     
-    if (tokens.length === 0) {
-      return {
-        statusCode: 200,
-        headers,
-        body: JSON.stringify({ 
-          tokens: [], 
-          total: 0,
-          error: 'No tokens in result.data',
-          debug: { result }
-        }),
-      };
-    }
-    
-    const mappedTokens = tokens.map((token: any) => ({
+    const tokens = result.data.rows.map((token: any) => ({
       id: token.mint || token.id || String(Math.random()),
       name: token.name || 'Unknown',
       symbol: token.symbol || '$???',
-      marketCap: token.marketCap || token.market_cap || token.mc || 0,
-      volume24h: token.volume24h || token.volume_24h || token.volume || token.vol || 0,
-      priceChange24h: token.priceChange24h || token.price_change_24h || token.priceChange || 0,
-      timestamp: token.createdAt || token.created_at || token.time || Date.now(),
-      imageUrl: token.icon || token.image || token.logo || '',
+      marketCap: token.marketCap || 0,
+      volume24h: token.volumeU || token.volume24h || token.volume || 0,
+      priceChange24h: token.priceChange24h || token.price_change_24h || 0,
+      timestamp: token.createAt || token.created_at || Date.now(),
+      imageUrl: token.imgUrl || token.icon || token.image || '',
     }));
 
+    // Sort by creation time (newest first)
+    tokens.sort((a: any, b: any) => (b.timestamp || 0) - (a.timestamp || 0));
+    
     const limit = timeRange === '24h' ? 20 : 100;
-    const limitedTokens = mappedTokens.slice(0, limit);
+    const limitedTokens = tokens.slice(0, limit);
     
     return {
       statusCode: 200,
       headers,
       body: JSON.stringify({ 
         tokens: limitedTokens, 
-        total: mappedTokens.length 
+        total: tokens.length 
       }),
     };
   } catch (error) {
