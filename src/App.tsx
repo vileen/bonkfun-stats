@@ -30,13 +30,17 @@ interface RewardsData {
   nextDistribution: number;
 }
 
-// Helper to get unique months from revenue history
+// Helper to get unique months from revenue history (sorted chronologically)
 const getUniqueMonths = (history: HistoricalRevenue[]): string[] => {
   const months = new Set<string>();
   history.forEach(item => {
     if (item.month) months.add(item.month);
   });
-  return Array.from(months).sort();
+  return Array.from(months).sort((a, b) => {
+    const dateA = new Date(a + '-01');
+    const dateB = new Date(b + '-01');
+    return dateA.getTime() - dateB.getTime();
+  });
 };
 
 // Helper to filter history by selected months
