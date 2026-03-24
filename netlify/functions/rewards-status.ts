@@ -1,7 +1,6 @@
 import type { Handler } from '@netlify/functions';
 
 export const handler: Handler = async (event) => {
-  // CORS headers
   const headers = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type',
@@ -22,6 +21,7 @@ export const handler: Handler = async (event) => {
       body: JSON.stringify(data),
     };
   } catch (error) {
+    console.error('Error fetching rewards:', error);
     return {
       statusCode: 500,
       headers,
