@@ -222,28 +222,11 @@ body {
   border: 1px solid var(--border-color);
   border-radius: 16px;
   transition: box-shadow 0.2s, border-color 0.2s;
-  user-select: text;
-}
-
-.draggable-section * {
-  user-select: text;
-}
-
-.draggable-section .drag-handle {
-  user-select: none;
 }
 
 .draggable-section:hover {
   border-color: #3a3a4a;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
-}
-
-.draggable-section[draggable="true"] {
-  cursor: grab;
-}
-
-.draggable-section[draggable="true"]:active {
-  cursor: grabbing;
 }
 
 .drag-handle {
@@ -260,7 +243,15 @@ body {
   color: var(--text-secondary);
   cursor: grab;
   transition: background 0.2s, color 0.2s;
-  z-index: 10;
+  z-index: 100;
+}
+
+.drag-handle[draggable="true"] {
+  cursor: grab;
+}
+
+.drag-handle[draggable="true"]:active {
+  cursor: grabbing;
 }
 
 .drag-handle:hover {
@@ -274,7 +265,7 @@ body {
 }
 
 /* When dragging, style the drag handle */
-.draggable-section[draggable="true"]:active .drag-handle {
+.drag-handle:active {
   cursor: grabbing;
   background: var(--accent-orange);
   color: white;

@@ -707,12 +707,14 @@ function App() {
           <div
             key={sectionId}
             className="draggable-section"
-            draggable
-            onDragStart={() => handleDragStart(sectionId)}
             onDragOver={(e) => handleDragOver(e, sectionId)}
-            onDragEnd={handleDragEnd}
           >
-            <div className="drag-handle">
+            <div
+              className="drag-handle"
+              draggable
+              onDragStart={() => handleDragStart(sectionId)}
+              onDragEnd={handleDragEnd}
+            >
               <GripVertical size={20} />
             </div>
             {renderSectionContent(sectionId)}
