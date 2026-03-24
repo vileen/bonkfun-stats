@@ -60,7 +60,7 @@ export const handler: Handler = async (event) => {
         volume24h: token.volumeU || token.volume24h || token.volume || token.vol || 0,
         priceChange24h: token.priceChange24h ?? token.price_change_24h ?? token.price_change ?? token.priceChange ?? token.change24h ?? token.change_24h ?? token.percent ?? token.priceChangePercent ?? 0,
         timestamp: token.createAt || token.created_at || token.createdAt || Date.now(),
-        imageUrl: token.imgUrl || token.icon || token.image || token.img || token.logo || token.logoURI || token.uri || token.platformInfo?.img || token.platformInfo?.icon || '',
+        imageUrl: token.imgUrl || token.icon || token.image || token.img || token.logo || token.logoURI || token.uri || token.platformInfo?.img || token.platformInfo?.icon || 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PGNpcmNsZSBjeD0iMzIiIGN5PSIzMiIgcj0iMzAiIGZpbGw9IiNmOTczMTYiLz48dGV4dCB4PSIzMiIgeT0iNDIiIGZvbnQtc2l6ZT0iMzAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IndoaXRlIj7wn5eyPC90ZXh0Pjwvc3ZnPg==',
       };
     });
 
