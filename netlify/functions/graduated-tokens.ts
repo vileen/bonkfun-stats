@@ -21,15 +21,28 @@ export const handler: Handler = async (event) => {
     const response = await fetch(apiUrl);
     const result = await response.json();
     
-    // Extract tokens from result.data (Raydium API structure)
-    const data = result.data || result;
+    // Debug
+    console.log('API result:', JSON.stringify(result).slice(0, 500));
+    console.log('result.data:', result.data);
+    console.log('result.data type:', typeof result.data);
+    console.log('result.data is array:', Array.isArray(result.data));
     
-    if (!Array.isArray(data)) {
-      console.log('Unexpected response format:', typeof result, Object.keys(result));
+    // Extract tokens from result.data
+    const data = Array.isArray(result.data) ? result.data : [];
+    
+    if (data.length === 0) {
       return {
         statusCode: 200,
         headers,
-        body: JSON.stringify({ tokens: [], total: 0, error: 'Invalid response format', debug: { resultKeys: Object.keys(result) } }),
+        body: JSON.stringify({ 
+          tokens: [], 
+          total: 0, 
+          debug: { 
+            resultKeys: Object.keys(result),
+            dataType: typeof result.data,
+            hasData: !!result.data
+          } 
+        }),
       };
     }
     
