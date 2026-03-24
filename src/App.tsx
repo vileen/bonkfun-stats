@@ -108,7 +108,11 @@ const fetchRewardsData = async (): Promise<RewardsData> => {
 };
 
 function App() {
-  const [graduatedView, setGraduatedView] = useState<'today' | '24h' | 'yesterday' | '100'>('today');
+  // Load saved view from localStorage or default to 'today'
+  const [graduatedView, setGraduatedView] = useState<'today' | '24h' | 'yesterday' | '100'>(() => {
+    const saved = localStorage.getItem('bonkfun-graduated-view');
+    return (saved as 'today' | '24h' | 'yesterday' | '100') || 'today';
+  });
   const [graduatedTokens, setGraduatedTokens] = useState<GraduatedToken[]>([]);
   const [allTokens, setAllTokens] = useState<GraduatedToken[]>([]);
   const [graduatedYesterday, setGraduatedYesterday] = useState({ count: 0, perBond: 0, hasMore: false });
@@ -129,7 +133,11 @@ function App() {
     return now.toLocaleDateString('en-US', { year: 'numeric', month: 'short' });
   };
 
-  const [selectedMonths, setSelectedMonths] = useState<string[]>([getCurrentMonth()]);
+  // Load saved months from localStorage or default to current month
+  const [selectedMonths, setSelectedMonths] = useState<string[]>(() => {
+    const saved = localStorage.getItem('bonkfun-selected-months');
+    return saved ? JSON.parse(saved) : [getCurrentMonth()];
+  });
 
   // Calculate filtered revenue data and totals based on selected months
   const filteredRevenue = filterByMonths(historicalRevenue, selectedMonths);
@@ -152,6 +160,16 @@ function App() {
   const clearMonthSelection = () => {
     setSelectedMonths([]);
   };
+
+  // Save selections to localStorage when they change
+  useEffect(() => {
+    localStorage.setItem('bonkfun-graduated-view', graduatedView);
+  }, [graduatedView]);
+
+  useEffect(() => {
+    localStorage.setItem('bonkfun-selected-months', JSON.stringify(selectedMonths));
+  }, [selectedMonths]);
+
   const [countdown, setCountdown] = useState({ h: 0, m: 0, s: 0 });
   const [initialLoading, setInitialLoading] = useState(true);
   const [tokensLoading, setTokensLoading] = useState(false);
@@ -404,7 +422,7 @@ function App() {
           <div className="card-header">
             <TrendingUp className="icon-blue" />
             <h2>Graduated Yesterday</h2>
-            <span className="utc-badge" title="00:00-23:59 UTC">Prev 24h</span>
+            <span className="utc-badge" title="00:00-23:59 UTC">prev day</span>
           </div>
           <div className="graduated-count">
             {graduatedYesterday.count}
