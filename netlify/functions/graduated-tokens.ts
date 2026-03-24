@@ -23,22 +23,48 @@ export const handler: Handler = async (event) => {
     
     const data = await response.json();
     
-    // Filter for graduated tokens (those with market cap > threshold or specific criteria)
-    // You may need to adjust this filtering based on actual data structure
-    const tokens = data.data || data || [];
+    // Log the actual structure for debugging
+    console.log('Raydium API response structure:', Object.keys(data));
+    console.log('First item structure:', data[0] ? Object.keys(data[0]) : 'no items');
     
-    // Map to our format
+    // Raydium API returns array directly or nested in data property
+    let tokens: any[] = [];
+    if (Array.isArray(data)) {
+      tokens = data;
+    } else if (data.data && Array.isArray(data.data)) {
+      tokens = data.data;
+    } else if (data.items && Array.isArray(data.items)) {
+      tokens = data.items;
+    } else if (data.tokens && Array.isArray(data.tokens)) {
+      tokens = data.tokens;
+    }
+    
+    if (tokens.length === 0) {
+      console.log('No tokens found in response, returning empty array');
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({ tokens: [], total: 0 }),
+      };
+    }
+    
+    // Map to our format - handle different field names
     const graduatedTokens = tokens
-      .filter((token: any) => token.marketCap > 50000 || token.isGraduated)
+      .filter((token: any) => {
+        // Check if token has graduated (marketCap > 69k or has graduated flag)
+        const marketCap = token.marketCap || token.market_cap || token.mc || 0;
+        const isGraduated = token.isGraduated || token.graduated || token.graduate || marketCap > 69000;
+        return isGraduated || marketCap > 50000;
+      })
       .map((token: any) => ({
-        id: token.mint || token.id,
-        name: token.name,
-        symbol: token.symbol,
-        marketCap: token.marketCap || 0,
-        volume24h: token.volume24h || token.volume || 0,
-        priceChange24h: token.priceChange24h || ((token.priceChange || 0) * 100),
-        timestamp: token.createdAt || Date.now(),
-        imageUrl: token.icon || token.image || '',
+        id: token.mint || token.id || token.address || String(Math.random()),
+        name: token.name || 'Unknown',
+        symbol: token.symbol || token.sym || '$???',
+        marketCap: token.marketCap || token.market_cap || token.mc || 0,
+        volume24h: token.volume24h || token.volume_24h || token.volume || token.vol || 0,
+        priceChange24h: token.priceChange24h || token.price_change_24h || token.priceChange || 0,
+        timestamp: token.createdAt || token.created_at || token.time || Date.now(),
+        imageUrl: token.icon || token.image || token.logo || '',
       }));
 
     // Limit based on range
