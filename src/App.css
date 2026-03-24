@@ -285,9 +285,11 @@ body {
   border-radius: 0;
 }
 
-/* Stats grid inside draggable section shouldn't have bottom margin */
+/* Stats grid inside draggable section */
 .draggable-section .stats-grid {
   margin-bottom: 0;
+  padding: 24px;
+  padding-top: 48px;
 }
 
 .section-header {
