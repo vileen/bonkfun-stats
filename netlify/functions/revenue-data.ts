@@ -27,23 +27,24 @@ export const handler: Handler = async (event) => {
     }
 
     // Extract historical data from script 9:{...}
-    // Format: self.__next_f.push([1, "9:{\"data\":[...],...}"])
     let history: any[] = [];
+    let debug: any = { steps: [] };
 
-    // Find the push call with the daily data - the content is double-quoted in HTML
-    // Looking for: self.__next_f.push([1, "9:{...}"])
+    // Method 1: Find the push call with the daily data
     const pushMatch = html.match(/self\.\_\_next_f\.push\(\[1,\s*"9:({.+?})"\]\)/s);
+    debug.steps.push({ method: 'pushMatch', found: !!pushMatch });
 
     if (pushMatch) {
       try {
-        // The captured JSON has escaped quotes: \" instead of "
-        // Need to unescape them for proper JSON parsing
         let jsonStr = pushMatch[1];
+        debug.steps.push({ jsonStrLength: jsonStr.length, preview: jsonStr.substring(0, 200) });
 
         // Replace escaped quotes with regular quotes
         jsonStr = jsonStr.replace(/\\"/g, '"');
+        debug.steps.push({ afterReplaceLength: jsonStr.length });
 
         const data = JSON.parse(jsonStr);
+        debug.steps.push({ parsed: true, hasData: !!data.data, dataLength: data.data?.length });
 
         if (Array.isArray(data.data) && data.data.length > 0) {
           history = data.data
@@ -55,40 +56,68 @@ export const handler: Handler = async (event) => {
             .slice(-30);
         }
       } catch (e) {
-        console.log('Failed to parse push data:', e);
+        debug.steps.push({ method: 'pushMatch', error: String(e) });
       }
     }
 
-    // Fallback: extract the raw data array directly
+    // Method 2: Find all self.__next_f.push calls and try each
     if (history.length === 0) {
-      const dataArrayMatch = html.match(/"data":(\[\{[^\]]*"day"[^\]]*\}\])/);
-      if (dataArrayMatch) {
+      const allPushes = html.matchAll(/self\.\_\_next_f\.push\(\[1,\s*"9:({.+?})"\]\)/gs);
+      let count = 0;
+      for (const match of allPushes) {
+        count++;
         try {
-          let arrayStr = dataArrayMatch[1].replace(/\\"/g, '"');
-          const dataArray = JSON.parse(arrayStr);
-          if (Array.isArray(dataArray)) {
-            history = dataArray
+          let jsonStr = match[1].replace(/\\"/g, '"');
+          const data = JSON.parse(jsonStr);
+          if (Array.isArray(data.data) && data.data.length > 0 && data.data[0].day) {
+            history = data.data
               .map((item: any) => ({
                 date: new Date(item.day).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
                 fees: Math.round(item.totalUsd || 0),
                 volume: Math.round((item.totalUsd || 0) * 50),
               }))
               .slice(-30);
+            debug.steps.push({ method: 'allPushes', foundAt: count });
+            break;
           }
         } catch (e) {
-          console.log('Failed to parse data array:', e);
+          // Continue to next
+        }
+      }
+      debug.steps.push({ method: 'allPushes', totalChecked: count });
+    }
+
+    // Method 3: Raw string extraction
+    if (history.length === 0) {
+      const rawMatch = html.match(/9:\\?({\\"data\\":\\?\[.+?\\?],\\"latestDay\\":.+?})/);
+      debug.steps.push({ method: 'rawMatch', found: !!rawMatch });
+      if (rawMatch) {
+        try {
+          let jsonStr = rawMatch[1].replace(/\\"/g, '"');
+          const data = JSON.parse(jsonStr);
+          if (Array.isArray(data.data)) {
+            history = data.data
+              .map((item: any) => ({
+                date: new Date(item.day).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+                fees: Math.round(item.totalUsd || 0),
+                volume: Math.round((item.totalUsd || 0) * 50),
+              }))
+              .slice(-30);
+            debug.steps.push({ method: 'rawMatch', success: true, count: history.length });
+          }
+        } catch (e) {
+          debug.steps.push({ method: 'rawMatch', error: String(e) });
         }
       }
     }
 
-    if (history.length === 0) {
-      console.log('No historical data found in response');
-    }
+    debug.steps.push({ finalHistoryLength: history.length });
+    console.log('Revenue debug:', JSON.stringify(debug, null, 2));
 
     return {
       statusCode: 200,
       headers,
-      body: JSON.stringify({ fees24h, volume24h, history }),
+      body: JSON.stringify({ fees24h, volume24h, history, debug }),
     };
   } catch (error) {
     console.error('Error scraping revenue:', error);
@@ -99,6 +128,7 @@ export const handler: Handler = async (event) => {
         fees24h: 195238,
         volume24h: 15294178,
         history: [],
+        debug: { error: String(error) },
       }),
     };
   }
