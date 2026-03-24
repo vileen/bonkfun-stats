@@ -20,15 +20,39 @@ export const handler: Handler = async (event) => {
     const response = await fetch(apiUrl);
     const result = await response.json();
     
-    // Check all possible locations for token data
-    let tokens: any[] = [];
+    // Debug log
+    console.log('Full API response:', JSON.stringify(result).slice(0, 1000));
     
-    if (Array.isArray(result)) {
-      tokens = result;
-    } else if (Array.isArray(result.data)) {
-      tokens = result.data;
-    } else if (result.data && Array.isArray(result.data.data)) {
-      tokens = result.data.data;
+    // Check response structure
+    if (!result.success) {
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({ 
+          tokens: [], 
+          total: 0,
+          error: 'API returned success=false',
+          debug: { result }
+        }),
+      };
+    }
+    
+    const tokens = result.data || [];
+    
+    if (!Array.isArray(tokens)) {
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({ 
+          tokens: [], 
+          total: 0,
+          error: 'result.data is not an array',
+          debug: { 
+            dataType: typeof tokens,
+            data: tokens
+          }
+        }),
+      };
     }
     
     if (tokens.length === 0) {
@@ -38,12 +62,8 @@ export const handler: Handler = async (event) => {
         body: JSON.stringify({ 
           tokens: [], 
           total: 0,
-          debug: {
-            resultType: typeof result,
-            resultKeys: Object.keys(result),
-            dataType: typeof result.data,
-            hasDataArray: Array.isArray(result.data),
-          }
+          error: 'No tokens in result.data',
+          debug: { result }
         }),
       };
     }
@@ -52,11 +72,11 @@ export const handler: Handler = async (event) => {
       id: token.mint || token.id || String(Math.random()),
       name: token.name || 'Unknown',
       symbol: token.symbol || '$???',
-      marketCap: token.marketCap || token.market_cap || 0,
-      volume24h: token.volume24h || token.volume_24h || token.volume || 0,
-      priceChange24h: token.priceChange24h || token.price_change_24h || 0,
-      timestamp: token.createdAt || Date.now(),
-      imageUrl: token.icon || token.image || '',
+      marketCap: token.marketCap || token.market_cap || token.mc || 0,
+      volume24h: token.volume24h || token.volume_24h || token.volume || token.vol || 0,
+      priceChange24h: token.priceChange24h || token.price_change_24h || token.priceChange || 0,
+      timestamp: token.createdAt || token.created_at || token.time || Date.now(),
+      imageUrl: token.icon || token.image || token.logo || '',
     }));
 
     const limit = timeRange === '24h' ? 20 : 100;
@@ -65,14 +85,20 @@ export const handler: Handler = async (event) => {
     return {
       statusCode: 200,
       headers,
-      body: JSON.stringify({ tokens: limitedTokens, total: mappedTokens.length }),
+      body: JSON.stringify({ 
+        tokens: limitedTokens, 
+        total: mappedTokens.length 
+      }),
     };
   } catch (error) {
     console.error('Error fetching tokens:', error);
     return {
       statusCode: 500,
       headers,
-      body: JSON.stringify({ error: 'Failed to fetch tokens', details: String(error) }),
+      body: JSON.stringify({ 
+        error: 'Failed to fetch tokens', 
+        details: String(error) 
+      }),
     };
   }
 };
