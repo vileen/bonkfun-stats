@@ -48,11 +48,15 @@ export const handler: Handler = async (event) => {
 
         if (Array.isArray(data.data) && data.data.length > 0) {
           history = data.data
-            .map((item: any) => ({
-              date: new Date(item.day).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-              fees: Math.round(item.totalUsd || 0),
-              volume: Math.round((item.totalUsd || 0) * 50),
-            }))
+            .map((item: any) => {
+              const date = new Date(item.day);
+              return {
+                date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+                month: date.toLocaleDateString('en-US', { year: 'numeric', month: 'short' }),
+                fees: Math.round(item.totalUsd || 0),
+                volume: Math.round((item.totalUsd || 0) * 50),
+              };
+            })
             .slice(-30);
         }
       } catch (e) {
@@ -71,11 +75,15 @@ export const handler: Handler = async (event) => {
           const data = JSON.parse(jsonStr);
           if (Array.isArray(data.data) && data.data.length > 0 && data.data[0].day) {
             history = data.data
-              .map((item: any) => ({
-                date: new Date(item.day).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-                fees: Math.round(item.totalUsd || 0),
-                volume: Math.round((item.totalUsd || 0) * 50),
-              }))
+              .map((item: any) => {
+                const date = new Date(item.day);
+                return {
+                  date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+                  month: date.toLocaleDateString('en-US', { year: 'numeric', month: 'short' }),
+                  fees: Math.round(item.totalUsd || 0),
+                  volume: Math.round((item.totalUsd || 0) * 50),
+                };
+              })
               .slice(-30);
             debug.steps.push({ method: 'allPushes', foundAt: count });
             break;
@@ -98,11 +106,15 @@ export const handler: Handler = async (event) => {
           if (Array.isArray(data.data)) {
             // Include ALL historical data, not just last 30 days
             history = data.data
-              .map((item: any) => ({
-                date: new Date(item.day).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-                fees: Math.round(item.totalUsd || 0),
-                volume: Math.round((item.totalUsd || 0) * 50),
-              }));
+              .map((item: any) => {
+                const date = new Date(item.day);
+                return {
+                  date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+                  month: date.toLocaleDateString('en-US', { year: 'numeric', month: 'short' }),
+                  fees: Math.round(item.totalUsd || 0),
+                  volume: Math.round((item.totalUsd || 0) * 50),
+                };
+              });
             debug.steps.push({ method: 'rawMatch', success: true, count: history.length });
           }
         } catch (e) {

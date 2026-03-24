@@ -17,6 +17,7 @@ interface GraduatedToken {
 
 interface HistoricalRevenue {
   date: string;
+  month: string;
   fees: number;
   volume: number;
 }
@@ -33,21 +34,15 @@ interface RewardsData {
 const getUniqueMonths = (history: HistoricalRevenue[]): string[] => {
   const months = new Set<string>();
   history.forEach(item => {
-    const date = new Date(item.date);
-    const monthYear = date.toLocaleDateString('en-US', { year: 'numeric', month: 'short' });
-    months.add(monthYear);
+    if (item.month) months.add(item.month);
   });
-  return Array.from(months).sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
+  return Array.from(months).sort();
 };
 
 // Helper to filter history by month
 const filterByMonth = (history: HistoricalRevenue[], month: string): HistoricalRevenue[] => {
   if (month === 'all') return history;
-  return history.filter(item => {
-    const date = new Date(item.date);
-    const itemMonth = date.toLocaleDateString('en-US', { year: 'numeric', month: 'short' });
-    return itemMonth === month;
-  });
+  return history.filter(item => item.month === month);
 };
 
 // Fetch graduated tokens via Netlify Function (proxies to Raydium API)
