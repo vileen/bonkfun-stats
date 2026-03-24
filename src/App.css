@@ -321,6 +321,8 @@ body {
   border-radius: 8px;
   padding: 4px;
   gap: 4px;
+  position: relative;
+  z-index: 20;
 }
 
 .toggle-group.four-buttons {
@@ -342,6 +344,8 @@ body {
   font-size: 0.9rem;
   font-weight: 500;
   transition: all 0.2s;
+  position: relative;
+  z-index: 21;
 }
 
 .toggle-group button:hover {
@@ -682,6 +686,8 @@ body {
   gap: 8px;
   margin-bottom: 16px;
   justify-content: center;
+  position: relative;
+  z-index: 20;
 }
 
 .month-selector button {
@@ -693,6 +699,8 @@ body {
   cursor: pointer;
   font-size: 0.8rem;
   transition: all 0.2s;
+  position: relative;
+  z-index: 21;
 }
 
 .month-selector button:hover {
