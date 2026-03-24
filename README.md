@@ -13,6 +13,25 @@ Combined dashboard for BONK.fun ecosystem metrics, aggregating data from:
 
 All numbers, token names, and charts are placeholder examples based on screenshots from the source sites. **No real API calls are being made.**
 
+## Development
+
+### Pre-push Hook
+
+This repo includes a git pre-push hook that runs TypeScript check before pushing:
+
+```bash
+# Hook is automatically installed in .git/hooks/pre-push
+# To bypass in emergency: git push --no-verify
+```
+
+### Manual Type Check
+
+```bash
+npm run typecheck
+# or
+npm run build
+```
+
 To use real data, you need to:
 1. Find the actual API endpoints (see "Connecting to Real APIs" below)
 2. Update the fetch functions in `src/App.tsx`
