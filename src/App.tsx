@@ -401,14 +401,20 @@ function App() {
               graduatedTokens.map((token) => (
                 <div key={token.id} className="token-row">
                   <div className="token-info">
-                    {token.imageUrl && (
+                    {token.imageUrl ? (
                       <img 
                         src={token.imageUrl} 
                         alt="" 
                         className="token-image" 
                         referrerPolicy="no-referrer"
-                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                        crossOrigin="anonymous"
+                        onError={(e) => { 
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = 'none'; 
+                        }}
                       />
+                    ) : (
+                      <div className="token-image-placeholder" />
                     )}
                     <div className="token-details">
                       <span className="token-name">{token.name}</span>

@@ -55,7 +55,14 @@ export const handler: Handler = async (event) => {
     
     const limit = timeRange === '24h' ? 20 : 100;
     const limitedTokens = tokens.slice(0, limit);
-    const hasMore = tokens.length >= 100; // API max is 100, so if we got 100, there might be more
+    
+    // Check if there are more tokens by looking at the oldest token's timestamp
+    // If the oldest token is within last 48h, there might be more
+    const now = Date.now();
+    const oneDayMs = 24 * 60 * 60 * 1000;
+    const oldestToken = tokens[tokens.length - 1];
+    const oldestTokenAge = now - (oldestToken?.timestamp || now);
+    const hasMore = tokens.length >= 100 && oldestTokenAge < (2 * oneDayMs);
     
     return {
       statusCode: 200,
