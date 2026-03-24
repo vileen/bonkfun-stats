@@ -573,6 +573,12 @@ body {
   text-transform: uppercase;
 }
 
+.token-date {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
 .token-details {
   display: flex;
   flex-direction: column;

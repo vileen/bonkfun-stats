@@ -460,7 +460,7 @@ function App() {
               </span>
               <span>Market Cap</span>
               <span>24h Volume</span>
-              <span>24h Change</span>
+              <span>Date</span>
             </div>
             {tokensLoading ? (
               <div className="tokens-loading">
@@ -501,8 +501,10 @@ function App() {
                   </div>
                   <span className="market-cap">${(token.marketCap / 1000).toFixed(1)}k</span>
                   <span className="volume">${(token.volume24h / 1000).toFixed(1)}k</span>
-                  <span className={`change ${(token.priceChange24h || 0) >= 0 ? 'positive' : 'negative'}`}>
-                    {(token.priceChange24h || 0) >= 0 ? '+' : ''}{(token.priceChange24h || 0).toFixed(1)}%
+                  <span className="token-date">
+                    {new Date(token.timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                    {' '}
+                    {new Date(token.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
                   </span>
                 </div>
               ))
