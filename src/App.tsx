@@ -88,10 +88,11 @@ const fetchRevenueData = async () => {
       fees24h: data.fees24h || 195238,
       volume24h: data.volume24h || 15294178,
       history: data.history || [],
+      total: data.total || { fees: 0, volume: 0 },
     };
   } catch (error) {
     console.error('Error fetching revenue:', error);
-    return { fees24h: 195238, volume24h: 15294178, history: [] };
+    return { fees24h: 195238, volume24h: 15294178, history: [], total: { fees: 0, volume: 0 } };
   }
 };
 
@@ -138,6 +139,7 @@ function App() {
     nextDistribution: 0,
   });
   const [revenue24h, setRevenue24h] = useState({ fees: 45000, volume: 2500000 });
+  const [revenueTotal, setRevenueTotal] = useState({ fees: 0, volume: 0 });
   const [countdown, setCountdown] = useState({ h: 0, m: 0, s: 0 });
   const [initialLoading, setInitialLoading] = useState(true);
   const [tokensLoading, setTokensLoading] = useState(false);
@@ -246,6 +248,7 @@ function App() {
       ]);
       setHistoricalRevenue(revenue.history);
       setRevenue24h({ fees: revenue.fees24h, volume: revenue.volume24h });
+      setRevenueTotal(revenue.total);
       setRewards(rewardsData);
 
       // Fetch yesterday stats using the SOL pool
@@ -516,7 +519,17 @@ function App() {
         <div className="section chart-section">
           <div className="section-header">
             <Wallet className="icon-purple" />
-            <h2>Revenue History (30d)</h2>
+            <h2>Revenue History (All Time)</h2>
+          </div>
+          <div className="revenue-totals">
+            <div className="revenue-total-item">
+              <span className="total-label">Total Fees</span>
+              <span className="total-value">${revenueTotal.fees.toLocaleString()}</span>
+            </div>
+            <div className="revenue-total-item">
+              <span className="total-label">Total Volume</span>
+              <span className="total-value">${(revenueTotal.volume / 1000000).toFixed(2)}M</span>
+            </div>
           </div>
           <div className="chart-container">
             <ResponsiveContainer width="100%" height={250}>
