@@ -222,6 +222,15 @@ body {
   border: 1px solid var(--border-color);
   border-radius: 16px;
   transition: box-shadow 0.2s, border-color 0.2s;
+  user-select: text;
+}
+
+.draggable-section * {
+  user-select: text;
+}
+
+.draggable-section .drag-handle {
+  user-select: none;
 }
 
 .draggable-section:hover {
@@ -290,8 +299,9 @@ body {
   margin-bottom: 0;
   padding: 24px;
   padding-top: 48px;
-  background: transparent;
-  border: none;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
 }
 
 .section-header {

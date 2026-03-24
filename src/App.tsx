@@ -620,8 +620,7 @@ function App() {
         return (
           <div className="section chart-section">
             <div className="section-header">
-              <h2>Revenue History</h2>
-              <Wallet className="icon-purple" />
+              <h2><Wallet className="icon-purple" /> Revenue History</h2>
             </div>
             <div className="revenue-totals">
               <div className="revenue-total-item">
