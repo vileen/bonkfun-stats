@@ -126,8 +126,8 @@ function App() {
   const [graduatedView, setGraduatedView] = useState<'100' | '24h'>('24h');
   const [graduatedTokens, setGraduatedTokens] = useState<GraduatedToken[]>([]);
   const [graduatedYesterday, setGraduatedYesterday] = useState({ count: 0, perBond: 0, hasMore: false });
+  const [graduatedToday, setGraduatedToday] = useState({ count: 0, hasMore: false });
   const [tokensHasMore, setTokensHasMore] = useState(false);
-  const [todayHasMore, setTodayHasMore] = useState(false);
   const [historicalRevenue, setHistoricalRevenue] = useState<HistoricalRevenue[]>([]);
   const [rewards, setRewards] = useState<RewardsData>({
     solPool: 0,
@@ -140,6 +140,24 @@ function App() {
   const [countdown, setCountdown] = useState({ h: 0, m: 0, s: 0 });
   const [initialLoading, setInitialLoading] = useState(true);
   const [tokensLoading, setTokensLoading] = useState(false);
+
+  // Calculate today's graduated count from tokens (since 00:00 UTC)
+  const calculateTodayStats = (tokens: GraduatedToken[], apiHasMore: boolean) => {
+    const now = new Date();
+    const utcMidnight = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+
+    const todayTokens = tokens.filter(t => {
+      const ts = t.timestamp || 0;
+      return ts >= utcMidnight;
+    });
+
+    const count = todayTokens.length;
+
+    // Today has more if API hit limit and we have tokens from today
+    const todayHasMore = apiHasMore && count > 0;
+
+    setGraduatedToday({ count, hasMore: todayHasMore });
+  };
 
   // Calculate yesterday's graduated count from tokens
   const calculateYesterdayStats = (tokens: GraduatedToken[], apiHasMore: boolean) => {
@@ -168,18 +186,18 @@ function App() {
   useEffect(() => {
     const loadTokens = async () => {
       if (initialLoading) setTokensLoading(true);
-      const { tokens, hasMore } = await fetchGraduatedTokens(graduatedView);
-      setGraduatedTokens(tokens);
+      // Always fetch 100 to get accurate today/yesterday counts
+      const { tokens, hasMore } = await fetchGraduatedTokens('100');
+      setGraduatedTokens(tokens.slice(0, graduatedView === '24h' ? 20 : 100));
       setTokensHasMore(hasMore);
-      
-      // Calculate yesterday stats when we get the 100 view data (more complete)
-      if (graduatedView === '100' || graduatedYesterday.count === 0) {
-        calculateYesterdayStats(tokens, hasMore);
-      }
-      
+
+      // Calculate today and yesterday stats
+      calculateTodayStats(tokens, hasMore);
+      calculateYesterdayStats(tokens, hasMore);
+
       if (initialLoading) setTokensLoading(false);
     };
-    
+
     loadTokens();
     const interval = setInterval(loadTokens, 60000); // Only refresh tokens every minute
     return () => clearInterval(interval);
@@ -200,10 +218,6 @@ function App() {
       // Fetch yesterday stats using the SOL pool
       const yesterday = await fetchYesterdayStats(rewardsData.solPool);
       setGraduatedYesterday(yesterday);
-
-      // Check if today might have more than 100 (based on rewards API graduated count vs our count)
-      // If rewards API shows more than we can see, flag it
-      setTodayHasMore(rewardsData.graduatedToday >= 100);
 
       setInitialLoading(false);
     };
@@ -302,14 +316,14 @@ function App() {
             <span className="utc-badge" title="Since 00:00 UTC">00:00 UTC</span>
           </div>
           <div className="graduated-count">
-            {rewards.graduatedToday}
-            {todayHasMore && <span className="count-suffix">+</span>}
+            {graduatedToday.count}
+            {graduatedToday.hasMore && <span className="count-suffix">+</span>}
           </div>
           <div className="per-bond">
-            {rewards.perBond > 0 ? `${rewards.perBond.toFixed(4)} SOL/bond` : '—'}
-            {todayHasMore && <span className="limit-note" title="API limit: 100 max. Actual count may be higher.">*</span>}
+            {graduatedToday.count > 0 ? `${(rewards.solPool / graduatedToday.count).toFixed(4)} SOL/bond` : '—'}
+            {graduatedToday.hasMore && <span className="limit-note" title="API limit: 100 max. Actual count may be higher.">*</span>}
           </div>
-          {todayHasMore && (
+          {graduatedToday.hasMore && (
             <div className="limit-warning">
               <Info size={12} /> API limited to 100. Actual may be higher.
             </div>
@@ -336,7 +350,7 @@ function App() {
               <Info size={12} /> API limited to 100. Count incomplete.
             </div>
           )}
-          {!graduatedYesterday.hasMore && graduatedYesterday.count === 0 && todayHasMore && (
+          {!graduatedYesterday.hasMore && graduatedYesterday.count === 0 && graduatedToday.hasMore && (
             <div className="limit-warning unknown">
               <Info size={12} /> Unknown — today has 100+ graduates
             </div>
