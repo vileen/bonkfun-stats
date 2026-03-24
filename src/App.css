@@ -664,3 +664,163 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: #3a3a4a;
 }
+
+/* Mobile Styles - iPhone 15 and smaller */
+@media (max-width: 430px) {
+  .dashboard {
+    padding: 12px;
+  }
+
+  .dashboard-header h1 {
+    font-size: 1.5rem;
+    flex-wrap: wrap;
+  }
+
+  .dashboard-header p {
+    font-size: 0.85rem;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .stat-card {
+    padding: 16px;
+  }
+
+  .reward-item .amount {
+    font-size: 1.5rem;
+  }
+
+  .reward-amounts {
+    gap: 20px;
+  }
+
+  .revenue-stats {
+    gap: 20px;
+  }
+
+  .revenue-item .amount {
+    font-size: 1.2rem;
+  }
+
+  .graduated-count {
+    font-size: 2rem;
+  }
+
+  .section {
+    padding: 16px;
+  }
+
+  .section-header {
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-start;
+  }
+
+  .section-header h2 {
+    font-size: 1rem;
+  }
+
+  .toggle-group.four-buttons {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .toggle-group.four-buttons button {
+    flex: 1;
+    padding: 8px 8px;
+    font-size: 0.75rem;
+  }
+
+  .table-header {
+    grid-template-columns: 1.5fr 1fr 1fr;
+    gap: 8px;
+    padding: 10px 12px;
+    font-size: 0.7rem;
+  }
+
+  .table-header span:last-child {
+    display: none;
+  }
+
+  .token-row {
+    grid-template-columns: 1.5fr 1fr 1fr;
+    gap: 8px;
+    padding: 12px;
+  }
+
+  .token-row span:last-child {
+    display: none;
+  }
+
+  .token-info {
+    gap: 8px;
+  }
+
+  .token-name {
+    font-size: 0.9rem;
+  }
+
+  .token-symbol {
+    font-size: 0.75rem;
+  }
+
+  .market-cap, .volume {
+    font-size: 0.8rem;
+  }
+
+  .token-image-container,
+  .token-image,
+  .token-image-placeholder {
+    width: 28px;
+    height: 28px;
+  }
+
+  .token-initial {
+    font-size: 12px;
+  }
+
+  .month-selector {
+    gap: 6px;
+  }
+
+  .month-selector button {
+    padding: 4px 8px;
+    font-size: 0.7rem;
+  }
+
+  .revenue-totals {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .revenue-total-item {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .total-value {
+    font-size: 1rem;
+  }
+
+  .chart-container {
+    margin-bottom: 12px;
+  }
+
+  .limit-warning {
+    font-size: 0.7rem;
+  }
+
+  .dashboard-footer {
+    font-size: 0.75rem;
+  }
+
+  .utc-note {
+    font-size: 0.7rem;
+    flex-wrap: wrap;
+  }
+}
