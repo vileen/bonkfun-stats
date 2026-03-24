@@ -15,7 +15,7 @@ export const handler: Handler = async (event) => {
     const params = event.queryStringParameters || {};
     const timeRange = params.range || '24h';
     
-    const apiUrl = 'https://launch-mint-v1.raydium.io/get/list?platformId=FfYek5vEz23cMkWsdJwG2oa6EphsvXSHrGpdALN4g6W1,82NMHVCKwehXgbXMyzL41mvv3sdkypaMCtTxvJ4CtTzm,BuM6KDpWiTcxvrpXywWFiw45R2RNH8WURdvqoTDV1BW4&sort=new&size=200&mintType=graduated&includeNsfw=true';
+    const apiUrl = 'https://launch-mint-v1.raydium.io/get/list?platformId=FfYek5vEz23cMkWsdJwG2oa6EphsvXSHrGpdALN4g6W1,82NMHVCKwehXgbXMyzL41mvv3sdkypaMCtTxvJ4CtTzm,BuM6KDpWiTcxvrpXywWFiw45R2RNH8WURdvqoTDV1BW4&sort=new&size=100&mintType=graduated&includeNsfw=true';
     
     const response = await fetch(apiUrl);
     const result = await response.json();
@@ -55,13 +55,15 @@ export const handler: Handler = async (event) => {
     
     const limit = timeRange === '24h' ? 20 : 100;
     const limitedTokens = tokens.slice(0, limit);
+    const hasMore = tokens.length >= 100; // API max is 100, so if we got 100, there might be more
     
     return {
       statusCode: 200,
       headers,
       body: JSON.stringify({ 
         tokens: limitedTokens, 
-        total: tokens.length 
+        total: tokens.length,
+        hasMore,
       }),
     };
   } catch (error) {

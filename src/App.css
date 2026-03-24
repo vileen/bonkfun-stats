@@ -459,6 +459,45 @@ body {
   cursor: not-allowed;
 }
 
+/* Count indicators for API limits */
+.count-suffix {
+  font-size: 0.6em;
+  color: var(--accent-orange);
+  margin-left: 4px;
+  vertical-align: super;
+}
+
+.limit-note {
+  color: var(--accent-orange);
+  cursor: help;
+  margin-left: 4px;
+}
+
+.limit-warning {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  color: var(--accent-orange);
+  margin-top: 8px;
+  padding: 6px 10px;
+  background: rgba(249, 115, 22, 0.1);
+  border-radius: 6px;
+  border: 1px solid rgba(249, 115, 22, 0.2);
+}
+
+.limit-warning.unknown {
+  color: var(--text-secondary);
+  background: rgba(160, 160, 176, 0.1);
+  border-color: rgba(160, 160, 176, 0.2);
+}
+
+.header-note {
+  font-size: 0.75em;
+  color: var(--accent-orange);
+  font-weight: 500;
+}
+
 @keyframes spin {
   to { transform: rotate(360deg); }
 }

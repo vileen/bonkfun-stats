@@ -30,25 +30,26 @@ interface RewardsData {
 }
 
 // Fetch graduated tokens via Netlify Function (proxies to Raydium API)
-const fetchGraduatedTokens = async (timeRange: '100' | '24h'): Promise<GraduatedToken[]> => {
+const fetchGraduatedTokens = async (timeRange: '100' | '24h'): Promise<{ tokens: GraduatedToken[]; hasMore: boolean }> => {
   try {
     const response = await fetch(`/.netlify/functions/graduated-tokens?range=${timeRange}`);
     if (!response.ok) throw new Error('Failed to fetch tokens');
     const data = await response.json();
-    return data.tokens || [];
+    return { tokens: data.tokens || [], hasMore: data.hasMore || false };
   } catch (error) {
     console.error('Error fetching graduated tokens:', error);
-    return [];
+    return { tokens: [], hasMore: false };
   }
 };
 
 // Fetch yesterday's graduated count separately (uses full 100 list)
-const fetchYesterdayStats = async (solPool: number): Promise<{ count: number; perBond: number }> => {
+const fetchYesterdayStats = async (solPool: number): Promise<{ count: number; perBond: number; hasMore: boolean }> => {
   try {
     const response = await fetch('/.netlify/functions/graduated-tokens?range=100');
     if (!response.ok) throw new Error('Failed to fetch tokens');
     const data = await response.json();
     const tokens: GraduatedToken[] = data.tokens || [];
+    const hasMore = data.hasMore || false;
     
     const now = Date.now();
     const oneDayMs = 24 * 60 * 60 * 1000;
@@ -63,10 +64,10 @@ const fetchYesterdayStats = async (solPool: number): Promise<{ count: number; pe
     const count = yesterdayTokens.length;
     const perBond = count > 0 ? (solPool / count) : 0;
     
-    return { count, perBond };
+    return { count, perBond, hasMore };
   } catch (error) {
     console.error('Error fetching yesterday stats:', error);
-    return { count: 0, perBond: 0 };
+    return { count: 0, perBond: 0, hasMore: false };
   }
 };
 
@@ -117,7 +118,9 @@ const fetchRewardsData = async (): Promise<RewardsData> => {
 function App() {
   const [graduatedView, setGraduatedView] = useState<'100' | '24h'>('24h');
   const [graduatedTokens, setGraduatedTokens] = useState<GraduatedToken[]>([]);
-  const [graduatedYesterday, setGraduatedYesterday] = useState({ count: 0, perBond: 0 });
+  const [graduatedYesterday, setGraduatedYesterday] = useState({ count: 0, perBond: 0, hasMore: false });
+  const [tokensHasMore, setTokensHasMore] = useState(false);
+  const [todayHasMore, setTodayHasMore] = useState(false);
   const [historicalRevenue, setHistoricalRevenue] = useState<HistoricalRevenue[]>([]);
   const [rewards, setRewards] = useState<RewardsData>({
     solPool: 0,
@@ -132,7 +135,7 @@ function App() {
   const [tokensLoading, setTokensLoading] = useState(false);
 
   // Calculate yesterday's graduated count from tokens
-  const calculateYesterdayStats = (tokens: GraduatedToken[]) => {
+  const calculateYesterdayStats = (tokens: GraduatedToken[], hasMore: boolean) => {
     const now = Date.now();
     const oneDayMs = 24 * 60 * 60 * 1000;
     const yesterdayStart = now - 2 * oneDayMs; // 48h ago
@@ -146,19 +149,20 @@ function App() {
     const count = yesterdayTokens.length;
     const perBond = count > 0 ? (rewards.solPool / count) : 0;
     
-    setGraduatedYesterday({ count, perBond });
+    setGraduatedYesterday({ count, perBond, hasMore });
   };
 
   // Fetch graduated tokens (with separate refresh interval)
   useEffect(() => {
     const loadTokens = async () => {
       if (initialLoading) setTokensLoading(true);
-      const tokens = await fetchGraduatedTokens(graduatedView);
+      const { tokens, hasMore } = await fetchGraduatedTokens(graduatedView);
       setGraduatedTokens(tokens);
+      setTokensHasMore(hasMore);
       
       // Calculate yesterday stats when we get the 100 view data (more complete)
       if (graduatedView === '100' || graduatedYesterday.count === 0) {
-        calculateYesterdayStats(tokens);
+        calculateYesterdayStats(tokens, hasMore);
       }
       
       if (initialLoading) setTokensLoading(false);
@@ -180,14 +184,18 @@ function App() {
       setHistoricalRevenue(revenue.history);
       setRevenue24h({ fees: revenue.fees24h, volume: revenue.volume24h });
       setRewards(rewardsData);
-      
+
       // Fetch yesterday stats using the SOL pool
       const yesterday = await fetchYesterdayStats(rewardsData.solPool);
       setGraduatedYesterday(yesterday);
-      
+
+      // Check if today might have more than 100 (based on rewards API graduated count vs our count)
+      // If rewards API shows more than we can see, flag it
+      setTodayHasMore(rewardsData.graduatedToday >= 100);
+
       setInitialLoading(false);
     };
-    
+
     loadInitialData();
   }, []);
 
@@ -281,8 +289,19 @@ function App() {
             <h2>Graduated Today</h2>
             <span className="utc-badge" title="Since 00:00 UTC">00:00 UTC</span>
           </div>
-          <div className="graduated-count">{rewards.graduatedToday}</div>
-          <div className="per-bond">{rewards.perBond > 0 ? `${rewards.perBond} SOL/bond` : '—'}</div>
+          <div className="graduated-count">
+            {rewards.graduatedToday}
+            {todayHasMore && <span className="count-suffix">+</span>}
+          </div>
+          <div className="per-bond">
+            {rewards.perBond > 0 ? `${rewards.perBond.toFixed(4)} SOL/bond` : '—'}
+            {todayHasMore && <span className="limit-note" title="API limit: 100 max. Actual count may be higher.">*</span>}
+          </div>
+          {todayHasMore && (
+            <div className="limit-warning">
+              <Info size={12} /> API limited to 100. Actual may be higher.
+            </div>
+          )}
         </div>
 
         {/* Graduated Yesterday */}
@@ -292,8 +311,24 @@ function App() {
             <h2>Graduated Yesterday</h2>
             <span className="utc-badge" title="00:00-23:59 UTC">Prev 24h</span>
           </div>
-          <div className="graduated-count">{graduatedYesterday.count}</div>
-          <div className="per-bond">{graduatedYesterday.perBond > 0 ? `${graduatedYesterday.perBond.toFixed(4)} SOL/bond` : '—'}</div>
+          <div className="graduated-count">
+            {graduatedYesterday.count}
+            {graduatedYesterday.hasMore && <span className="count-suffix">+</span>}
+          </div>
+          <div className="per-bond">
+            {graduatedYesterday.perBond > 0 ? `${graduatedYesterday.perBond.toFixed(4)} SOL/bond` : '—'}
+            {graduatedYesterday.hasMore && <span className="limit-note" title="API limit: 100 max. Yesterday count may be incomplete.">*</span>}
+          </div>
+          {graduatedYesterday.hasMore && (
+            <div className="limit-warning">
+              <Info size={12} /> API limited to 100. Count incomplete.
+            </div>
+          )}
+          {!graduatedYesterday.hasMore && graduatedYesterday.count === 0 && todayHasMore && (
+            <div className="limit-warning unknown">
+              <Info size={12} /> Unknown — today has 100+ graduates
+            </div>
+          )}
         </div>
       </div>
 
@@ -335,7 +370,12 @@ function App() {
           </div>
           <div className="tokens-table">
             <div className="table-header">
-              <span>Token</span>
+              <span>
+                Token
+                {graduatedView === '100' && tokensHasMore && (
+                  <span className="header-note" title="Showing 100 of 100+ tokens"> (100+)</span>
+                )}
+              </span>
               <span>Market Cap</span>
               <span>24h Volume</span>
               <span>24h Change</span>
