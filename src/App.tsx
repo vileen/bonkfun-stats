@@ -237,7 +237,7 @@ function App() {
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
-                <Tooltip formatter={(value: number) => `${value}%`} />
+                <Tooltip formatter={(value) => `${value}%`} />
                 <Legend />
               </PieChart>
             </ResponsiveContainer>
