@@ -123,7 +123,13 @@ function App() {
     nextDistribution: 0,
   });
   const [revenue24h, setRevenue24h] = useState({ fees: 45000, volume: 2500000 });
-  const [selectedMonths, setSelectedMonths] = useState<string[]>([]);
+  // Get current month string (e.g., "Mar 2026")
+  const getCurrentMonth = () => {
+    const now = new Date();
+    return now.toLocaleDateString('en-US', { year: 'numeric', month: 'short' });
+  };
+
+  const [selectedMonths, setSelectedMonths] = useState<string[]>([getCurrentMonth()]);
 
   // Calculate filtered revenue data and totals based on selected months
   const filteredRevenue = filterByMonths(historicalRevenue, selectedMonths);
