@@ -317,7 +317,7 @@ function App() {
                 />
                 <RechartsTooltip 
                   contentStyle={{ backgroundColor: '#1a1a25', border: '1px solid #2a2a3a' }}
-                  formatter={(value: number) => [`$${value.toLocaleString()}`, 'Fees']}
+                  formatter={(value) => [`$${Number(value).toLocaleString()}`, 'Fees']}
                 />
                 <Bar dataKey="fees" fill="#22c55e" radius={[4, 4, 0, 0]} />
               </BarChart>
@@ -342,7 +342,7 @@ function App() {
                 />
                 <RechartsTooltip 
                   contentStyle={{ backgroundColor: '#1a1a25', border: '1px solid #2a2a3a' }}
-                  formatter={(value: number) => [`$${value.toLocaleString()}`, 'Volume']}
+                  formatter={(value) => [`$${Number(value).toLocaleString()}`, 'Volume']}
                 />
                 <Line 
                   type="monotone" 
