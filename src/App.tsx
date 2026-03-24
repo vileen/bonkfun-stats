@@ -43,59 +43,61 @@ interface RewardsData {
   nextDistribution: number;
 }
 
-// Fetch graduated tokens from bonk.fun API
+// Fetch graduated tokens via Netlify Function (proxies to Raydium API)
 const fetchGraduatedTokens = async (timeRange: '100' | '24h'): Promise<GraduatedToken[]> => {
   try {
-    // Note: This is a mock implementation. 
-    // Real implementation would need CORS proxy or backend endpoint
-    // const response = await fetch('https://api.bonk.fun/graduated?limit=' + (timeRange === '24h' ? '50' : '100'));
-    // const data = await response.json();
-    
-    // Mock data with realistic token names
-    const mockTokens: GraduatedToken[] = [
-      { id: '1', name: 'BonkMoon', symbol: 'BMOON', marketCap: 2500000, volume24h: 450000, priceChange24h: 45.2, timestamp: Date.now() - 3600000, imageUrl: '' },
-      { id: '2', name: 'SolanaDoge', symbol: 'SDOGE', marketCap: 1800000, volume24h: 320000, priceChange24h: -12.5, timestamp: Date.now() - 7200000, imageUrl: '' },
-      { id: '3', name: 'MemeCoinMax', symbol: 'MAX', marketCap: 950000, volume24h: 280000, priceChange24h: 89.3, timestamp: Date.now() - 10800000, imageUrl: '' },
-      { id: '4', name: 'RocketBONK', symbol: 'RBONK', marketCap: 750000, volume24h: 150000, priceChange24h: 23.7, timestamp: Date.now() - 14400000, imageUrl: '' },
-      { id: '5', name: 'DegenLife', symbol: 'DEGEN', marketCap: 620000, volume24h: 120000, priceChange24h: -5.4, timestamp: Date.now() - 18000000, imageUrl: '' },
-      { id: '6', name: 'MoonShot', symbol: 'MOON', marketCap: 580000, volume24h: 98000, priceChange24h: 156.2, timestamp: Date.now() - 21600000, imageUrl: '' },
-      { id: '7', name: 'BONKArmy', symbol: 'ARMY', marketCap: 450000, volume24h: 87000, priceChange24h: 34.8, timestamp: Date.now() - 25200000, imageUrl: '' },
-      { id: '8', name: 'SolSurfer', symbol: 'SURF', marketCap: 380000, volume24h: 65000, priceChange24h: -18.9, timestamp: Date.now() - 28800000, imageUrl: '' },
-    ];
-    
-    return timeRange === '24h' ? mockTokens.slice(0, 8) : [...mockTokens, ...mockTokens.map((t, i) => ({...t, id: t.id + '-' + i, name: t.name + ' V' + (i+2)}))];
+    const response = await fetch(`/.netlify/functions/graduated-tokens?range=${timeRange}`);
+    if (!response.ok) throw new Error('Failed to fetch tokens');
+    const data = await response.json();
+    return data.tokens || [];
   } catch (error) {
     console.error('Error fetching graduated tokens:', error);
     return [];
   }
 };
 
-// Fetch historical revenue data
-const fetchHistoricalRevenue = async (): Promise<HistoricalRevenue[]> => {
-  // Mock historical data - last 30 days
-  const data: HistoricalRevenue[] = [];
-  for (let i = 29; i >= 0; i--) {
-    const date = new Date();
-    date.setDate(date.getDate() - i);
-    data.push({
-      date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-      fees: Math.floor(Math.random() * 30000) + 20000,
-      volume: Math.floor(Math.random() * 2000000) + 1000000,
-    });
+// Fetch revenue data via Netlify Function
+const fetchRevenueData = async () => {
+  try {
+    const response = await fetch('/.netlify/functions/revenue-data');
+    if (!response.ok) throw new Error('Failed to fetch revenue');
+    const data = await response.json();
+    return {
+      fees24h: data.fees24h || 0,
+      volume24h: data.volume24h || 0,
+      history: data.history || [],
+    };
+  } catch (error) {
+    console.error('Error fetching revenue:', error);
+    return { fees24h: 0, volume24h: 0, history: [] };
   }
-  return data;
 };
 
-// Fetch rewards data
+// Fetch rewards data from rewards.bonk.fun API
 const fetchRewardsData = async (): Promise<RewardsData> => {
-  // Mock data - replace with actual API call
-  return {
-    solPool: 12.5,
-    usd1Pool: 1250,
-    graduatedToday: 8,
-    perBond: 0.15,
-    nextDistribution: Date.now() + 3600000,
-  };
+  try {
+    const response = await fetch('/.netlify/functions/rewards-status');
+    if (!response.ok) throw new Error('Failed to fetch rewards');
+    const data = await response.json();
+    
+    // Parse the response - adjust based on actual API structure
+    return {
+      solPool: data.solPool || data.sol || 0,
+      usd1Pool: data.usd1Pool || data.usd1 || 0,
+      graduatedToday: data.graduatedToday || data.graduated || 0,
+      perBond: data.perBond || data.rewardPerBond || 0,
+      nextDistribution: Date.now() + (data.nextDistributionInMs || 3600000),
+    };
+  } catch (error) {
+    console.error('Error fetching rewards:', error);
+    return {
+      solPool: 0,
+      usd1Pool: 0,
+      graduatedToday: 0,
+      perBond: 0,
+      nextDistribution: Date.now() + 3600000,
+    };
+  }
 };
 
 function App() {
@@ -119,18 +121,13 @@ function App() {
       setLoading(true);
       const [tokens, revenue, rewardsData] = await Promise.all([
         fetchGraduatedTokens(graduatedView),
-        fetchHistoricalRevenue(),
+        fetchRevenueData(),
         fetchRewardsData(),
       ]);
       setGraduatedTokens(tokens);
-      setHistoricalRevenue(revenue);
+      setHistoricalRevenue(revenue.history);
+      setRevenue24h({ fees: revenue.fees24h, volume: revenue.volume24h });
       setRewards(rewardsData);
-      
-      // Calculate 24h totals from historical data
-      const last24h = revenue.slice(-1)[0];
-      if (last24h) {
-        setRevenue24h({ fees: last24h.fees, volume: last24h.volume });
-      }
       
       setLoading(false);
     };
