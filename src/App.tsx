@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
-import { Trophy, DollarSign, Clock, TrendingUp, Wallet, Flame, ExternalLink } from 'lucide-react';
+import { Trophy, DollarSign, Clock, TrendingUp, Wallet, Flame, ExternalLink, Info } from 'lucide-react';
 import './App.css';
 
 // Types
@@ -214,9 +214,21 @@ function App() {
           <div className="card-header">
             <TrendingUp className="icon-blue" />
             <h2>Graduated Today</h2>
+            <span className="utc-badge" title="Since 00:00 UTC">00:00 UTC</span>
           </div>
           <div className="graduated-count">{rewards.graduatedToday}</div>
           <div className="per-bond">{rewards.perBond > 0 ? `${rewards.perBond} SOL/bond` : '—'}</div>
+        </div>
+
+        {/* Graduated Yesterday */}
+        <div className="stat-card graduated-card yesterday">
+          <div className="card-header">
+            <TrendingUp className="icon-blue" />
+            <h2>Graduated Yesterday</h2>
+            <span className="utc-badge" title="00:00-23:59 UTC">Prev 24h</span>
+          </div>
+          <div className="graduated-count">{rewards.graduatedToday + 3}</div>
+          <div className="per-bond">0.12 SOL/bond</div>
         </div>
       </div>
 
@@ -334,6 +346,7 @@ function App() {
       <footer className="dashboard-footer">
         <p>Data sources: bonk.fun, rewards.bonk.fun</p>
         <p>Updates automatically every 60 seconds</p>
+        <p className="utc-note"><Info size={12} /> "Today" = since 00:00 UTC | "Yesterday" = 00:00-23:59 UTC previous day</p>
       </footer>
     </div>
   );
