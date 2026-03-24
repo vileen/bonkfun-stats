@@ -15,39 +15,40 @@ export const handler: Handler = async (event) => {
     const params = event.queryStringParameters || {};
     const timeRange = params.range || '24h';
     
-    // Call Raydium API
     const apiUrl = 'https://launch-mint-v1.raydium.io/get/list?platformId=FfYek5vEz23cMkWsdJwG2oa6EphsvXSHrGpdALN4g6W1,82NMHVCKwehXgbXMyzL41mvv3sdkypaMCtTxvJ4CtTzm,BuM6KDpWiTcxvrpXywWFiw45R2RNH8WURdvqoTDV1BW4&sort=new&size=100&mintType=graduated&includeNsfw=true';
     
     const response = await fetch(apiUrl);
     const result = await response.json();
     
-    // Debug
-    console.log('API result:', JSON.stringify(result).slice(0, 500));
-    console.log('result.data:', result.data);
-    console.log('result.data type:', typeof result.data);
-    console.log('result.data is array:', Array.isArray(result.data));
+    // Check all possible locations for token data
+    let tokens: any[] = [];
     
-    // Extract tokens from result.data
-    const data = Array.isArray(result.data) ? result.data : [];
+    if (Array.isArray(result)) {
+      tokens = result;
+    } else if (Array.isArray(result.data)) {
+      tokens = result.data;
+    } else if (result.data && Array.isArray(result.data.data)) {
+      tokens = result.data.data;
+    }
     
-    if (data.length === 0) {
+    if (tokens.length === 0) {
       return {
         statusCode: 200,
         headers,
         body: JSON.stringify({ 
           tokens: [], 
-          total: 0, 
-          debug: { 
+          total: 0,
+          debug: {
+            resultType: typeof result,
             resultKeys: Object.keys(result),
             dataType: typeof result.data,
-            hasData: !!result.data
-          } 
+            hasDataArray: Array.isArray(result.data),
+          }
         }),
       };
     }
     
-    // Map tokens
-    const tokens = data.map((token: any) => ({
+    const mappedTokens = tokens.map((token: any) => ({
       id: token.mint || token.id || String(Math.random()),
       name: token.name || 'Unknown',
       symbol: token.symbol || '$???',
@@ -58,14 +59,13 @@ export const handler: Handler = async (event) => {
       imageUrl: token.icon || token.image || '',
     }));
 
-    // Limit based on range
     const limit = timeRange === '24h' ? 20 : 100;
-    const limitedTokens = tokens.slice(0, limit);
+    const limitedTokens = mappedTokens.slice(0, limit);
     
     return {
       statusCode: 200,
       headers,
-      body: JSON.stringify({ tokens: limitedTokens, total: tokens.length }),
+      body: JSON.stringify({ tokens: limitedTokens, total: mappedTokens.length }),
     };
   } catch (error) {
     console.error('Error fetching tokens:', error);

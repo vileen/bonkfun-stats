@@ -80,13 +80,13 @@ const fetchRewardsData = async (): Promise<RewardsData> => {
     if (!response.ok) throw new Error('Failed to fetch rewards');
     const data = await response.json();
     
-    // Parse the response - match actual API field names
+    // Parse the response - match actual API field names from rewards.bonk.fun
     return {
       solPool: data.balance_sol || 0,
       usd1Pool: data.balance_usd1 || 0,
       graduatedToday: data.graduated_count || 0,
       perBond: data.balance_sol && data.graduated_count ? data.balance_sol / data.graduated_count : 0,
-      nextDistribution: Date.now() + 3600000, // 1 hour from now (API doesn't provide this)
+      nextDistribution: Date.now() + 3600000,
     };
   } catch (error) {
     console.error('Error fetching rewards:', error);
