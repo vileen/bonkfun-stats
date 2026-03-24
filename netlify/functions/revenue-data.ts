@@ -27,27 +27,25 @@ export const handler: Handler = async (event) => {
     }
 
     // Extract historical data from script 9:{...}
+    // Format: self.__next_f.push([1, "9:{\"data\":[...],...}"])
     let history: any[] = [];
 
-    // The data is embedded in: self.__next_f.push([1, "9:{...}"])
-    // Find all script tags and look for the one with daily data
-    const scriptMatches = html.matchAll(/self\.\_\_next_f\.push\(\[1,\s*"9:({.+?})"\]\)/g);
+    // Find the push call with the daily data - the content is double-quoted in HTML
+    // Looking for: self.__next_f.push([1, "9:{...}"])
+    const pushMatch = html.match(/self\.\_\_next_f\.push\(\[1,\s*"9:({.+?})"\]\)/s);
 
-    for (const match of scriptMatches) {
+    if (pushMatch) {
       try {
-        let jsonStr = match[1];
+        // The captured JSON has escaped quotes: \" instead of "
+        // Need to unescape them for proper JSON parsing
+        let jsonStr = pushMatch[1];
 
-        // Unescape the JSON string
-        // The string contains escaped quotes like \" which need to become "
-        jsonStr = jsonStr
-          .replace(/\\"/g, '"')     // \\\" -> \"
-          .replace(/\\n/g, '\n')     // \\n -> newline  
-          .replace(/\\\\/g, '\\');   // \\\\ -> \
+        // Replace escaped quotes with regular quotes
+        jsonStr = jsonStr.replace(/\\"/g, '"');
 
         const data = JSON.parse(jsonStr);
 
-        // Check if this is the daily revenue data (has 'data' array with 'day' and 'totalUsd')
-        if (Array.isArray(data.data) && data.data.length > 0 && data.data[0].day && data.data[0].totalUsd !== undefined) {
+        if (Array.isArray(data.data) && data.data.length > 0) {
           history = data.data
             .map((item: any) => ({
               date: new Date(item.day).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
@@ -55,28 +53,28 @@ export const handler: Handler = async (event) => {
               volume: Math.round((item.totalUsd || 0) * 50),
             }))
             .slice(-30);
-          break; // Found it, stop searching
         }
       } catch (e) {
-        // Continue to next match
-        continue;
+        console.log('Failed to parse push data:', e);
       }
     }
 
-    // Fallback: try to extract from the raw HTML using a simpler pattern
+    // Fallback: extract the raw data array directly
     if (history.length === 0) {
-      // Look for the data array directly in the HTML
-      const dataMatch = html.match(/"data":(\[\{\"day\":\"[^\]]+\}\])/);
-      if (dataMatch) {
+      const dataArrayMatch = html.match(/"data":(\[\{[^\]]*"day"[^\]]*\}\])/);
+      if (dataArrayMatch) {
         try {
-          const dataArray = JSON.parse(dataMatch[1]);
-          history = dataArray
-            .map((item: any) => ({
-              date: new Date(item.day).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-              fees: Math.round(item.totalUsd || 0),
-              volume: Math.round((item.totalUsd || 0) * 50),
-            }))
-            .slice(-30);
+          let arrayStr = dataArrayMatch[1].replace(/\\"/g, '"');
+          const dataArray = JSON.parse(arrayStr);
+          if (Array.isArray(dataArray)) {
+            history = dataArray
+              .map((item: any) => ({
+                date: new Date(item.day).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+                fees: Math.round(item.totalUsd || 0),
+                volume: Math.round((item.totalUsd || 0) * 50),
+              }))
+              .slice(-30);
+          }
         } catch (e) {
           console.log('Failed to parse data array:', e);
         }
