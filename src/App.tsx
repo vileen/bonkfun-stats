@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
+import { XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { Trophy, DollarSign, Clock, TrendingUp, Wallet, Flame, ExternalLink, Info } from 'lucide-react';
 import './App.css';
 
@@ -28,6 +28,27 @@ interface RewardsData {
   perBond: number;
   nextDistribution: number;
 }
+
+// Helper to get unique months from revenue history
+const getUniqueMonths = (history: HistoricalRevenue[]): string[] => {
+  const months = new Set<string>();
+  history.forEach(item => {
+    const date = new Date(item.date);
+    const monthYear = date.toLocaleDateString('en-US', { year: 'numeric', month: 'short' });
+    months.add(monthYear);
+  });
+  return Array.from(months).sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
+};
+
+// Helper to filter history by month
+const filterByMonth = (history: HistoricalRevenue[], month: string): HistoricalRevenue[] => {
+  if (month === 'all') return history;
+  return history.filter(item => {
+    const date = new Date(item.date);
+    const itemMonth = date.toLocaleDateString('en-US', { year: 'numeric', month: 'short' });
+    return itemMonth === month;
+  });
+};
 
 // Fetch graduated tokens via Netlify Function (proxies to Raydium API)
 const fetchGraduatedTokens = async (timeRange: '100' | '24h'): Promise<{ tokens: GraduatedToken[]; hasMore: boolean }> => {
@@ -104,6 +125,7 @@ function App() {
   });
   const [revenue24h, setRevenue24h] = useState({ fees: 45000, volume: 2500000 });
   const [revenueTotal, setRevenueTotal] = useState({ fees: 0, volume: 0 });
+  const [revenueMonth, setRevenueMonth] = useState<string>('all');
   const [countdown, setCountdown] = useState({ h: 0, m: 0, s: 0 });
   const [initialLoading, setInitialLoading] = useState(true);
   const [tokensLoading, setTokensLoading] = useState(false);
@@ -502,7 +524,7 @@ function App() {
         <div className="section chart-section">
           <div className="section-header">
             <Wallet className="icon-purple" />
-            <h2>Revenue History (All Time)</h2>
+            <h2>Revenue History</h2>
           </div>
           <div className="revenue-totals">
             <div className="revenue-total-item">
@@ -514,9 +536,29 @@ function App() {
               <span className="total-value">${(revenueTotal.volume / 1000000).toFixed(2)}M</span>
             </div>
           </div>
+          
+          {/* Month Selector */}
+          <div className="month-selector">
+            <button
+              className={revenueMonth === 'all' ? 'active' : ''}
+              onClick={() => setRevenueMonth('all')}
+            >
+              All
+            </button>
+            {getUniqueMonths(historicalRevenue).map(month => (
+              <button
+                key={month}
+                className={revenueMonth === month ? 'active' : ''}
+                onClick={() => setRevenueMonth(month)}
+              >
+                {month}
+              </button>
+            ))}
+          </div>
+          
           <div className="chart-container">
-            <ResponsiveContainer width="100%" height={250}>
-              <BarChart data={historicalRevenue}>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={filterByMonth(historicalRevenue, revenueMonth)}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#2a2a3a" />
                 <XAxis 
                   dataKey="date" 
@@ -536,37 +578,6 @@ function App() {
                 />
                 <Bar dataKey="fees" fill="#22c55e" radius={[4, 4, 0, 0]} />
               </BarChart>
-            </ResponsiveContainer>
-          </div>
-          
-          <div className="chart-container second-chart">
-            <ResponsiveContainer width="100%" height={200}>
-              <LineChart data={historicalRevenue}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#2a2a3a" />
-                <XAxis 
-                  dataKey="date" 
-                  stroke="#666" 
-                  fontSize={10}
-                  tickLine={false}
-                />
-                <YAxis 
-                  stroke="#666" 
-                  fontSize={10}
-                  tickLine={false}
-                  tickFormatter={(value) => `$${(value / 1000000).toFixed(1)}M`}
-                />
-                <RechartsTooltip 
-                  contentStyle={{ backgroundColor: '#1a1a25', border: '1px solid #2a2a3a' }}
-                  formatter={(value) => [`$${Number(value).toLocaleString()}`, 'Volume']}
-                />
-                <Line 
-                  type="monotone" 
-                  dataKey="volume" 
-                  stroke="#3b82f6" 
-                  strokeWidth={2}
-                  dot={false}
-                />
-              </LineChart>
             </ResponsiveContainer>
           </div>
         </div>

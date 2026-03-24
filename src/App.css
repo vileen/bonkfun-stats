@@ -607,6 +607,37 @@ body {
   color: var(--accent-green);
 }
 
+/* Month Selector */
+.month-selector {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+  justify-content: center;
+}
+
+.month-selector button {
+  background: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  padding: 6px 12px;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  transition: all 0.2s;
+}
+
+.month-selector button:hover {
+  border-color: var(--accent-orange);
+  color: var(--text-primary);
+}
+
+.month-selector button.active {
+  background: var(--accent-orange);
+  border-color: var(--accent-orange);
+  color: white;
+}
+
 .token-details {
   display: flex;
   flex-direction: column;
