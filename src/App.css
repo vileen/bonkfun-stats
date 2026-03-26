@@ -29,6 +29,8 @@ body {
   max-width: 1400px;
   margin: 0 auto;
   padding: 24px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 /* Header */
@@ -782,6 +784,9 @@ body {
 @media (max-width: 430px) {
   .dashboard {
     padding: 12px;
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
   }
 
   .dashboard-header h1 {
