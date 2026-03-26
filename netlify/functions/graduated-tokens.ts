@@ -40,20 +40,19 @@ export const handler: Handler = async (event) => {
     }
     
     const tokens = result.data.rows.map((token: any) => {
-      // Debug logging for image URL
-      console.log('Token image sources:', {
+      // Debug logging for all available fields
+      console.log('Token fields:', {
         mint: token.mint,
-        imgUrl: token.imgUrl,
-        icon: token.icon,
-        image: token.image,
-        img: token.img,
-        logo: token.logo,
-        logoURI: token.logoURI,
-        platformInfoImg: token.platformInfo?.img,
+        id: token.id,
+        address: token.address,
+        tokenAddress: token.tokenAddress,
+        mintAddress: token.mintAddress,
+        pubkey: token.pubkey,
+        publicKey: token.publicKey,
       });
-      
+
       return {
-        id: token.mint || token.id || String(Math.random()),
+        id: token.mint || token.address || token.id || String(Math.random()),
         name: token.name || 'Unknown',
         symbol: token.symbol || '$???',
         marketCap: token.marketCap || 0,
