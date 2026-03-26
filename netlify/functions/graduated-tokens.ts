@@ -41,7 +41,9 @@ export const handler: Handler = async (event) => {
     
     const tokens = result.data.rows.map((token: any) => {
       // Debug logging for all available fields
-      console.log('Token fields:', {
+      console.log('Token debug:', JSON.stringify({
+        name: token.name,
+        symbol: token.symbol,
         mint: token.mint,
         id: token.id,
         address: token.address,
@@ -49,7 +51,10 @@ export const handler: Handler = async (event) => {
         mintAddress: token.mintAddress,
         pubkey: token.pubkey,
         publicKey: token.publicKey,
-      });
+        poolId: token.poolId,
+        migrateAmmId: token.migrateAmmId,
+        platformInfoPubKey: token.platformInfo?.pubKey,
+      }, null, 2));
 
       return {
         id: token.mint || token.address || token.id || String(Math.random()),
