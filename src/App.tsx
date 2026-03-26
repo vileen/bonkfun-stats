@@ -6,6 +6,7 @@ import './App.css';
 // Types
 interface GraduatedToken {
   id: string;
+  mint?: string;
   name: string;
   symbol: string;
   marketCap: number;
@@ -600,7 +601,7 @@ function App() {
                       </div>
                       <div className="token-details">
                         <a
-                          href={`https://axiom.trade/meme/${token.id}?chain=sol`}
+                          href={`https://axiom.trade/solana/${token.id}?chain=sol`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="token-name-link"
