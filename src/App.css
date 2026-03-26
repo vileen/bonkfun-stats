@@ -420,6 +420,28 @@ body {
   color: var(--text-secondary);
 }
 
+.token-name-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-primary);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.token-name-link:hover {
+  color: var(--accent-orange);
+}
+
+.token-name-link .link-icon {
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.token-name-link:hover .link-icon {
+  opacity: 1;
+}
+
 .market-cap, .volume {
   font-size: 0.95rem;
   color: var(--text-secondary);

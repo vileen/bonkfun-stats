@@ -599,7 +599,16 @@ function App() {
                         </div>
                       </div>
                       <div className="token-details">
-                        <span className="token-name">{token.name}</span>
+                        <a 
+                          href={`https://axiom.trade/solana/${token.id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="token-name-link"
+                          title="View on Axiom"
+                        >
+                          <span className="token-name">{token.name}</span>
+                          <ExternalLink size={12} className="link-icon" />
+                        </a>
                         <span className="token-symbol">${token.symbol}</span>
                       </div>
                     </div>
