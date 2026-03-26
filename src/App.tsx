@@ -460,10 +460,7 @@ function App() {
                 {graduatedYesterday.count}
                 {graduatedYesterday.hasMore && <span className="count-suffix">+</span>}
               </div>
-              <div className="per-bond">
-                {graduatedYesterday.perBond > 0 ? `${graduatedYesterday.perBond.toFixed(4)} SOL/bond` : '—'}
-                {graduatedYesterday.hasMore && <span className="limit-note" title="API limit: 100 max. Yesterday count may be incomplete.">*</span>}
-              </div>
+              {/* perBond hidden - needs historical pool data */}
               {graduatedYesterday.hasMore && (
                 <div className="limit-warning">
                   <Info size={12} /> API limited to 100. Count incomplete.
@@ -487,10 +484,7 @@ function App() {
                 {graduatedLast24h.count}
                 {graduatedLast24h.hasMore && <span className="count-suffix">+</span>}
               </div>
-              <div className="per-bond">
-                {graduatedLast24h.count > 0 ? `${(rewards.solPool / graduatedLast24h.count).toFixed(4)} SOL/bond` : '—'}
-                {graduatedLast24h.hasMore && <span className="limit-note" title="API limit: 100 max. Actual count may be higher.">*</span>}
-              </div>
+              {/* perBond hidden - needs historical pool data */}
               {graduatedLast24h.hasMore && (
                 <div className="limit-warning">
                   <Info size={12} /> API limited to 100. Actual may be higher.
