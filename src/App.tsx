@@ -599,8 +599,8 @@ function App() {
                         </div>
                       </div>
                       <div className="token-details">
-                        <a 
-                          href={`https://axiom.trade/solana/${token.id}`}
+                        <a
+                          href={`https://axiom.trade/meme/${token.id}?chain=sol`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="token-name-link"
