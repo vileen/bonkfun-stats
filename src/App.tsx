@@ -213,14 +213,15 @@ function App() {
   const [initialLoading, setInitialLoading] = useState(true);
   const [tokensLoading, setTokensLoading] = useState(false);
 
-  // Calculate today's graduated count from tokens (since 00:00 UTC)
+  // Calculate today's graduated count from tokens (since 00:00 local time)
   const calculateTodayStats = (tokens: GraduatedToken[], apiHasMore: boolean) => {
     const now = new Date();
-    const utcMidnight = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+    // Use local midnight instead of UTC midnight
+    const localMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
 
     const todayTokens = tokens.filter(t => {
       const ts = t.timestamp || 0;
-      return ts >= utcMidnight;
+      return ts >= localMidnight;
     });
 
     const count = todayTokens.length;
@@ -231,12 +232,13 @@ function App() {
     setGraduatedToday({ count, hasMore: todayHasMore });
   };
 
-  // Filter tokens based on view
+  // Filter tokens based on view (using local timezone for day boundaries)
   const filterTokensByView = (tokens: GraduatedToken[], view: 'today' | '24h' | 'yesterday' | '100'): GraduatedToken[] => {
     const now = new Date();
     const oneDayMs = 24 * 60 * 60 * 1000;
-    const todayMidnight = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
-    const yesterdayMidnight = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 1);
+    // Use local midnight for day boundaries (matches UI display)
+    const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    const yesterdayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1).getTime();
 
     switch (view) {
       case 'today':
@@ -244,7 +246,7 @@ function App() {
       case '24h':
         return tokens.filter(t => (t.timestamp || 0) >= Date.now() - oneDayMs);
       case 'yesterday':
-        // Calendar day: yesterday 00:00 UTC to today 00:00 UTC
+        // Calendar day: yesterday 00:00 to today 00:00 (local time)
         return tokens.filter(t => {
           const ts = t.timestamp || 0;
           return ts >= yesterdayMidnight && ts < todayMidnight;
@@ -255,13 +257,14 @@ function App() {
     }
   };
 
-  // Calculate yesterday's graduated count from tokens (calendar day)
+  // Calculate yesterday's graduated count from tokens (calendar day, local timezone)
   const calculateYesterdayStats = (tokens: GraduatedToken[], apiHasMore: boolean) => {
     const now = new Date();
-    const todayMidnight = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
-    const yesterdayMidnight = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 1);
+    // Use local midnight for day boundaries
+    const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    const yesterdayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1).getTime();
 
-    // Calendar day: yesterday 00:00 UTC to today 00:00 UTC
+    // Calendar day: yesterday 00:00 to today 00:00 (local time)
     const yesterdayTokens = tokens.filter(t => {
       const ts = t.timestamp || 0;
       return ts >= yesterdayMidnight && ts < todayMidnight;
@@ -432,7 +435,7 @@ function App() {
               <div className="card-header">
                 <TrendingUp className="icon-blue" />
                 <h2>Graduated Today</h2>
-                <span className="utc-badge" title="Since 00:00 UTC">00:00 UTC</span>
+                <span className="utc-badge" title="Since midnight local time">local midnight</span>
               </div>
               <div className="graduated-count">
                 {graduatedToday.count}
@@ -729,7 +732,7 @@ function App() {
       <footer className="dashboard-footer">
         <p>Data sources: <a href="https://bonk.fun" target="_blank" rel="noopener noreferrer">bonk.fun</a>, <a href="https://rewards.bonk.fun" target="_blank" rel="noopener noreferrer">rewards.bonk.fun</a>, <a href="https://revenue.letsbonk.fun" target="_blank" rel="noopener noreferrer">revenue.letsbonk.fun</a></p>
         <p>Updates automatically every 60 seconds</p>
-        <p className="utc-note"><Info size={12} /> "Today" = since 00:00 UTC | "Yesterday" = 00:00-23:59 UTC previous day</p>
+        <p className="utc-note"><Info size={12} /> "Today" = since midnight local time | "Yesterday" = previous calendar day (local time)</p>
       </footer>
     </div>
   );
